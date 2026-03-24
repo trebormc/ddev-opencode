@@ -1,0 +1,73 @@
+#ddev-generated
+# OpenCode AI container for DDEV
+# Provides an AI-powered development environment with access to web container
+# Install: ddev add-on get trebormc/ddev-opencode
+
+services:
+  opencode:
+    container_name: ddev-${DDEV_SITENAME}-opencode
+    hostname: opencode
+    build:
+      context: .
+      dockerfile: opencode-build/Dockerfile.opencode
+    labels:
+      com.ddev.site-name: ${DDEV_SITENAME}
+      com.ddev.approot: ${DDEV_APPROOT}
+    restart: "no"
+    user: "${DDEV_UID:-1000}:${DDEV_GID:-1000}"
+    working_dir: /var/www/html
+
+    depends_on:
+      - web
+      - playwright-mcp
+      - beads
+      - agents-sync
+
+    volumes:
+      - ../:/var/www/html
+      - agents-data:/agents:ro
+      - ${HOST_OPENCODE_AUTH_DIR:-/dev/null}:/home/opencode/.local/share/opencode
+      - ${HOST_OPENCODE_CONFIG_DIR:-/dev/null}:/home/opencode/.config/opencode
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ddev-global-cache:/mnt/ddev-global-cache
+
+    expose:
+      - "4096"
+
+    environment:
+      - DDEV_SITENAME
+      - DDEV_PRIMARY_URL
+      - DDEV_DOCROOT
+      - IS_DDEV_PROJECT=true
+      - WEB_CONTAINER=ddev-${DDEV_SITENAME}-web
+      - DB_CONTAINER=ddev-${DDEV_SITENAME}-db
+      - PLAYWRIGHT_MCP_URL=http://playwright-mcp:8931/mcp
+      - BEADS_CONTAINER=ddev-${DDEV_SITENAME}-beads
+      - OPENCODE_DISABLE_TERMINAL_TITLE=1
+      - TZ=${TZ:-UTC}
+      - VIRTUAL_HOST=${DDEV_HOSTNAME}
+      - HTTP_EXPOSE=4096:4096
+      - HTTPS_EXPOSE=4096:4096
+
+    stdin_open: true
+    tty: true
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    networks:
+      - default
+      - ddev_default
+
+    command: ["opencode", "web", "--port", "4096", "--hostname", "0.0.0.0"]
+
+networks:
+  ddev_default:
+    name: ddev_default
+    external: true
+
+volumes:
+  agents-data:
+    name: ddev-${DDEV_SITENAME}-agents
+  ddev-global-cache:
+    external: true

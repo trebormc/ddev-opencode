@@ -1,0 +1,49 @@
+name: ddev-opencode
+
+ddev_version_constraint: '>= v1.23.5'
+
+dependencies:
+  - trebormc/ddev-playwright-mcp
+  - trebormc/ddev-beads
+  - trebormc/ddev-agents-sync
+
+pre_install_actions:
+  - |
+    #ddev-description:Checking prerequisites for OpenCode
+    echo "Installing ddev-opencode add-on..."
+
+project_files:
+  - docker-compose.opencode.yaml
+  - opencode-build/Dockerfile.opencode
+  - commands/host/opencode
+
+global_files: []
+
+post_install_actions:
+  - |
+    #ddev-description:Configuring OpenCode environment
+    if [ ! -f .ddev/.env.opencode ]; then
+      cat > .ddev/.env.opencode << 'ENVEOF'
+    #ddev-generated
+    # OpenCode environment configuration
+    # Adjust these paths to match your host setup
+
+    # Authentication directory (contains auth.json with API keys)
+    HOST_OPENCODE_AUTH_DIR=${HOME}/.local/share/opencode/
+
+    # OpenCode configuration directory (opencode.json, agents, rules)
+    HOST_OPENCODE_CONFIG_DIR=${HOME}/.config/opencode/
+
+    # Timezone
+    TZ=UTC
+    ENVEOF
+      echo "Created .ddev/.env.opencode — please review and adjust paths"
+    else
+      echo ".ddev/.env.opencode already exists, skipping"
+    fi
+    chmod +x .ddev/commands/host/opencode
+
+removal_actions:
+  - |
+    #ddev-description:Cleaning up OpenCode
+    echo "OpenCode add-on removed."

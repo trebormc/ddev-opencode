@@ -1,0 +1,44 @@
+#!/bin/bash
+
+#ddev-generated
+## Description: Access the OpenCode AI container (TUI or shell)
+## Usage: opencode [tui [title...]|shell|command...]
+## Example: "ddev opencode" for TUI, "ddev opencode shell" for bash, "ddev opencode <command>" to run a command
+## ExecRaw: true
+
+OPENCODE_CONTAINER="ddev-${DDEV_SITENAME}-opencode"
+
+set_tab_title() {
+    local custom_title="$1"
+    if [ -n "$custom_title" ]; then
+        printf '\033]0;%s - %s\007' "${DDEV_SITENAME}" "$custom_title"
+    else
+        printf '\033]0;%s - OpenCode\007' "${DDEV_SITENAME}"
+    fi
+}
+
+restore_tab_title() {
+    printf '\033]0;%s\007' "${TERM_PROGRAM:-Terminal}"
+}
+
+case "$1" in
+    ""|"tui")
+        if [ "$1" = "tui" ]; then
+            shift
+        fi
+        CUSTOM_TITLE="$*"
+        set_tab_title "$CUSTOM_TITLE"
+        trap restore_tab_title EXIT
+        docker exec -it "$OPENCODE_CONTAINER" opencode
+        ;;
+    "shell"|"bash")
+        set_tab_title "shell"
+        trap restore_tab_title EXIT
+        docker exec -it "$OPENCODE_CONTAINER" bash
+        ;;
+    *)
+        set_tab_title "$1"
+        trap restore_tab_title EXIT
+        docker exec -it "$OPENCODE_CONTAINER" "$@"
+        ;;
+esac
