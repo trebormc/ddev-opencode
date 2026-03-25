@@ -15,6 +15,7 @@ pre_install_actions:
 project_files:
   - docker-compose.opencode.yaml
   - opencode-build/Dockerfile.opencode
+  - opencode-build/entrypoint.sh
   - opencode-build/sync-credentials.sh
   - commands/host/opencode
 
