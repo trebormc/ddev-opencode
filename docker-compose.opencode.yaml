@@ -26,8 +26,8 @@ services:
     volumes:
       - ../:/var/www/html
       - agents-opencode-data:/agents-opencode:ro
-      - ${HOST_OPENCODE_AUTH_DIR:-/dev/null}:/home/opencode/.local/share/opencode
-      - ${HOST_OPENCODE_CONFIG_DIR:-/dev/null}:/home/opencode/.config/opencode
+      - ${HOST_OPENCODE_DIR:-/dev/null}/auth:/home/opencode/.local/share/opencode
+      - ${HOST_OPENCODE_DIR:-/dev/null}/config:/home/opencode/.config/opencode
       - ${HOST_CLAUDE_CONFIG_DIR:-/dev/null}:/home/opencode/.claude-credentials:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ddev-global-cache:/mnt/ddev-global-cache

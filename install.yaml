@@ -28,13 +28,12 @@ post_install_actions:
       cat > .env.opencode << 'ENVEOF'
     #ddev-generated
     # OpenCode environment configuration
-    # Adjust these paths to match your host setup
 
-    # Authentication directory (contains auth.json with API keys)
-    HOST_OPENCODE_AUTH_DIR=${HOME}/.local/share/opencode/
-
-    # OpenCode configuration directory (opencode.json, agents, rules)
-    HOST_OPENCODE_CONFIG_DIR=${HOME}/.config/opencode/
+    # Shared OpenCode directory for credentials and config.
+    # This directory is shared across ALL DDEV projects so you only
+    # need to configure once. Change only if you need a custom location.
+    # Subdirectories: auth/ (credentials), config/ (opencode.json, custom overrides)
+    HOST_OPENCODE_DIR=${HOME}/.ddev/opencode
 
     # Claude Code config directory (for automatic OAuth credential sync)
     # If ddev-claude-code is installed, credentials are synced automatically
@@ -43,10 +42,16 @@ post_install_actions:
     # Timezone
     TZ=UTC
     ENVEOF
-      echo "Created .env.opencode — please review and adjust paths in .ddev/.env.opencode"
+      echo "Created .env.opencode — review settings in .ddev/.env.opencode"
     else
       echo ".env.opencode already exists, skipping"
     fi
+    # Ensure shared directories exist
+    if [ -f .env.opencode ]; then
+      eval "$(grep '^[[:space:]]*HOST_OPENCODE_DIR=' .env.opencode)"
+    fi
+    OC_DIR="${HOST_OPENCODE_DIR:-${HOME}/.ddev/opencode}"
+    mkdir -p "$OC_DIR/auth" "$OC_DIR/config"
     echo "OpenCode add-on installed successfully!"
 
 removal_actions:
