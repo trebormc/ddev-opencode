@@ -91,21 +91,21 @@ RUN echo 'export PATH="${HOME}/.npm-global/bin:${HOME}/go/bin:$PATH"' >> ~/.bash
     && echo 'echo "Commands: opencode | drush | phpunit | phpstan | web-shell | bd"' >> ~/.bashrc \
     && echo '' >> ~/.bashrc \
     && echo '# Set up config from synced agents volume' >> ~/.bashrc \
-    && echo 'if [ -d "/agents" ]; then' >> ~/.bashrc \
+    && echo 'if [ -d "/agents-opencode" ]; then' >> ~/.bashrc \
     && echo '  mkdir -p "$HOME/.config/opencode"' >> ~/.bashrc \
     && echo '  # Always symlink agent/rules/skills from synced volume' >> ~/.bashrc \
-    && echo '  for d in /agents/agent /agents/rules /agents/skills; do' >> ~/.bashrc \
+    && echo '  for d in /agents-opencode/agent /agents-opencode/rules /agents-opencode/skills; do' >> ~/.bashrc \
     && echo '    [ -d "$d" ] && ln -sfn "$d" "$HOME/.config/opencode/"' >> ~/.bashrc \
     && echo '  done' >> ~/.bashrc \
     && echo '  # Symlink CLAUDE.md from synced volume' >> ~/.bashrc \
-    && echo '  [ -f "/agents/CLAUDE.md" ] && ln -sf "/agents/CLAUDE.md" "$HOME/.config/opencode/"' >> ~/.bashrc \
+    && echo '  [ -f "/agents-opencode/CLAUDE.md" ] && ln -sf "/agents-opencode/CLAUDE.md" "$HOME/.config/opencode/"' >> ~/.bashrc \
     && echo '  # Use synced opencode.json.example as default if user has no custom config' >> ~/.bashrc \
-    && echo '  if [ ! -f "$HOME/.config/opencode/opencode.json" ] && [ -f "/agents/opencode.json.example" ]; then' >> ~/.bashrc \
-    && echo '    ln -sf "/agents/opencode.json.example" "$HOME/.config/opencode/opencode.json"' >> ~/.bashrc \
+    && echo '  if [ ! -f "$HOME/.config/opencode/opencode.json" ] && [ -f "/agents-opencode/opencode.json.example" ]; then' >> ~/.bashrc \
+    && echo '    ln -sf "/agents-opencode/opencode.json.example" "$HOME/.config/opencode/opencode.json"' >> ~/.bashrc \
     && echo '  fi' >> ~/.bashrc \
     && echo '  # Symlink notifier config if user has no custom one' >> ~/.bashrc \
-    && echo '  if [ ! -f "$HOME/.config/opencode/opencode-notifier.json" ] && [ -f "/agents/opencode-notifier.json" ]; then' >> ~/.bashrc \
-    && echo '    ln -sf "/agents/opencode-notifier.json" "$HOME/.config/opencode/"' >> ~/.bashrc \
+    && echo '  if [ ! -f "$HOME/.config/opencode/opencode-notifier.json" ] && [ -f "/agents-opencode/opencode-notifier.json" ]; then' >> ~/.bashrc \
+    && echo '    ln -sf "/agents-opencode/opencode-notifier.json" "$HOME/.config/opencode/"' >> ~/.bashrc \
     && echo '  fi' >> ~/.bashrc \
     && echo 'fi' >> ~/.bashrc
 
