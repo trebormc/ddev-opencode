@@ -23,6 +23,7 @@ global_files: []
 post_install_actions:
   - |
     #ddev-description:Configuring OpenCode environment
+    mkdir -p .ddev
     if [ ! -f .ddev/.env.opencode ]; then
       cat > .ddev/.env.opencode << 'ENVEOF'
     #ddev-generated
