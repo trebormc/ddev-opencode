@@ -23,9 +23,8 @@ global_files: []
 post_install_actions:
   - |
     #ddev-description:Configuring OpenCode environment
-    mkdir -p .ddev
-    if [ ! -f .ddev/.env.opencode ]; then
-      cat > .ddev/.env.opencode << 'ENVEOF'
+    if [ ! -f .env.opencode ]; then
+      cat > .env.opencode << 'ENVEOF'
     #ddev-generated
     # OpenCode environment configuration
     # Adjust these paths to match your host setup
@@ -43,9 +42,9 @@ post_install_actions:
     # Timezone
     TZ=UTC
     ENVEOF
-      echo "Created .ddev/.env.opencode — please review and adjust paths"
+      echo "Created .env.opencode — please review and adjust paths in .ddev/.env.opencode"
     else
-      echo ".ddev/.env.opencode already exists, skipping"
+      echo ".env.opencode already exists, skipping"
     fi
     echo "OpenCode add-on installed successfully!"
 
