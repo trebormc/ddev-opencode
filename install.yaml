@@ -46,7 +46,7 @@ post_install_actions:
     else
       echo ".ddev/.env.opencode already exists, skipping"
     fi
-    chmod +x .ddev/commands/host/opencode
+    echo "OpenCode add-on installed successfully!"
 
 removal_actions:
   - |
