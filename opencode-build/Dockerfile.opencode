@@ -54,6 +54,10 @@ RUN usermod -aG docker ${USERNAME} || true
 RUN printf '#!/bin/bash\nexec docker exec -i "$BEADS_CONTAINER" bd "$@"\n' > /usr/local/bin/bd \
     && chmod +x /usr/local/bin/bd
 
+# Copy credentials sync script
+COPY opencode-build/sync-credentials.sh /usr/local/bin/sync-credentials.sh
+RUN chmod +x /usr/local/bin/sync-credentials.sh
+
 # Create required directories
 RUN mkdir -p ${USER_HOME}/.config/opencode \
     && mkdir -p ${USER_HOME}/.local/share/opencode \
