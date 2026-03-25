@@ -156,14 +156,19 @@ See the [DDEV AI workspace](https://github.com/trebormc/ddev-ai-workspace) for f
 
 For autonomous task execution (overnight runs), see [ddev-ralph](https://github.com/trebormc/ddev-ralph).
 
-## Related
+## Part of DDEV AI Workspace
 
-- [drupal-ai-agents](https://github.com/trebormc/drupal-ai-agents) -- 13 agents, 4 rules, 14 skills for Drupal development
-- [ddev-claude-code](https://github.com/trebormc/ddev-claude-code) -- Alternative: Claude Code AI for DDEV
-- [ddev-ralph](https://github.com/trebormc/ddev-ralph) -- Autonomous task runner
-- [ddev-agents-sync](https://github.com/trebormc/ddev-agents-sync) -- Agents auto-sync from git (auto-installed)
-- [ddev-beads](https://github.com/trebormc/ddev-beads) -- Beads task tracker (auto-installed)
-- [ddev-playwright-mcp](https://github.com/trebormc/ddev-playwright-mcp) -- Playwright browser automation (auto-installed)
+This add-on is part of [DDEV AI Workspace](https://github.com/trebormc/ddev-ai-workspace), a modular ecosystem of DDEV add-ons for AI-powered Drupal development.
+
+| Repository | Description | Relationship |
+|------------|-------------|--------------|
+| [ddev-ai-workspace](https://github.com/trebormc/ddev-ai-workspace) | Meta add-on that installs the full AI development stack with one command. | Workspace |
+| [ddev-claude-code](https://github.com/trebormc/ddev-claude-code) | [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI container for interactive development. | Alternative AI tool |
+| [ddev-ralph](https://github.com/trebormc/ddev-ralph) | Autonomous AI task orchestrator. Delegates work to this container or Claude Code via `docker exec`. | Uses this as backend |
+| [ddev-playwright-mcp](https://github.com/trebormc/ddev-playwright-mcp) | Headless Playwright browser for browser automation and visual testing. | Auto-installed dependency |
+| [ddev-beads](https://github.com/trebormc/ddev-beads) | [Beads](https://github.com/steveyegge/beads) git-backed task tracker shared by all AI containers. | Auto-installed dependency |
+| [ddev-agents-sync](https://github.com/trebormc/ddev-agents-sync) | Auto-syncs AI agent repositories into a shared Docker volume. Provides agents and config. | Auto-installed dependency |
+| [drupal-ai-agents](https://github.com/trebormc/drupal-ai-agents) | 13 agents, 4 rules, 14 skills for Drupal development. Synced automatically via ddev-agents-sync. | Agent configuration |
 
 ## Disclaimer
 
