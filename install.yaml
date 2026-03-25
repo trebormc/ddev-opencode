@@ -38,7 +38,7 @@ post_install_actions:
 
     # Claude Code config directory (for automatic OAuth credential sync)
     # If ddev-claude-code is installed, credentials are synced automatically
-    HOST_CLAUDE_CONFIG_DIR=${HOME}/.claude
+    HOST_CLAUDE_CONFIG_DIR=${HOME}/.ddev/claude-code
 
     # Timezone
     TZ=UTC
