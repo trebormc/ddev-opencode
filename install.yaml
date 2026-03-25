@@ -11,6 +11,10 @@ pre_install_actions:
   - |
     #ddev-description:Checking prerequisites for OpenCode
     echo "Installing ddev-opencode add-on..."
+  - |
+    #ddev-description:Creating shared OpenCode config directory
+    OC_DIR="${HOME}/.ddev/opencode"
+    mkdir -p "$OC_DIR/auth" "$OC_DIR/config"
 
 project_files:
   - docker-compose.opencode.yaml
@@ -46,12 +50,6 @@ post_install_actions:
     else
       echo ".env.opencode already exists, skipping"
     fi
-    # Ensure shared directories exist
-    if [ -f .env.opencode ]; then
-      eval "$(grep '^[[:space:]]*HOST_OPENCODE_DIR=' .env.opencode)"
-    fi
-    OC_DIR="${HOST_OPENCODE_DIR:-${HOME}/.ddev/opencode}"
-    mkdir -p "$OC_DIR/auth" "$OC_DIR/config"
     echo "OpenCode add-on installed successfully!"
 
 removal_actions:
