@@ -4,7 +4,7 @@
 
 A DDEV add-on that runs [OpenCode](https://github.com/opencode-ai/opencode) in a dedicated container for AI-powered Drupal development.
 
-For the best experience, pair this add-on with [drupal-ai-agents](https://github.com/trebormc/drupal-ai-agents) -- 13 agents, 4 rules, and 14 skills built specifically for Drupal development.
+Agents, rules, and skills for Drupal development are automatically synced from [drupal-ai-agents](https://github.com/trebormc/drupal-ai-agents) via [ddev-agents-sync](https://github.com/trebormc/ddev-agents-sync) -- no manual git clone needed.
 
 ## Quick Start
 
@@ -17,10 +17,9 @@ mkdir -p ~/opencode-auth
 cp share/auth.json.example ~/opencode-auth/auth.json
 # Edit ~/opencode-auth/auth.json with your API tokens
 
-# 3. Point to your config and auth directories
+# 3. Point to your auth directory
 ddev dotenv set .ddev/.env.opencode \
-  --host-opencode-auth-dir="$HOME/opencode-auth/" \
-  --host-opencode-config-dir="$HOME/drupal-ai-agents/"
+  --host-opencode-auth-dir="$HOME/opencode-auth/"
 
 # 4. Restart DDEV
 ddev restart
@@ -41,7 +40,10 @@ ddev add-on get trebormc/ddev-opencode
 ddev restart
 ```
 
-This automatically installs [ddev-playwright-mcp](https://github.com/trebormc/ddev-playwright-mcp) (browser automation) and [ddev-beads](https://github.com/trebormc/ddev-beads) (task tracking) as dependencies.
+This automatically installs all dependencies:
+- [ddev-agents-sync](https://github.com/trebormc/ddev-agents-sync) -- auto-syncs AI agents from git
+- [ddev-beads](https://github.com/trebormc/ddev-beads) -- task tracking
+- [ddev-playwright-mcp](https://github.com/trebormc/ddev-playwright-mcp) -- browser automation
 
 ## Authentication
 
@@ -69,23 +71,32 @@ After installation, environment variables are in `.ddev/.env.opencode`:
 # Shared across ALL DDEV projects. Change only if you need a custom location.
 HOST_OPENCODE_AUTH_DIR=${HOME}/opencode-auth/
 
-# Directory containing opencode.json, agents, rules, and skills.
-# Point this to your drupal-ai-agents clone for Drupal-specific agents.
-HOST_OPENCODE_CONFIG_DIR=${HOME}/drupal-ai-agents/
-
 # Timezone
 TZ=UTC
 ```
 
-### OpenCode Configuration
+### Agent Configuration
 
-The `HOST_OPENCODE_CONFIG_DIR` should contain an `opencode.json` file with your model preferences, permissions, and MCP settings. The [drupal-ai-agents](https://github.com/trebormc/drupal-ai-agents) repository includes a ready-to-use `opencode.json.example`:
+By default, agents, rules, and skills are automatically synced from [drupal-ai-agents](https://github.com/trebormc/drupal-ai-agents) via the [ddev-agents-sync](https://github.com/trebormc/ddev-agents-sync) container. No manual setup is needed.
+
+To customize which repos are synced, edit `.ddev/.env.agents-sync`:
 
 ```bash
-cd ~/drupal-ai-agents
-cp opencode.json.example opencode.json
-# Edit opencode.json with your preferences
+# Sync from multiple repos (later repos override earlier ones)
+AGENTS_REPOS=https://github.com/trebormc/drupal-ai-agents.git,https://github.com/your-org/private-agents.git
 ```
+
+To manually trigger an update: `ddev agents-update`
+
+### Local Path Override
+
+If you prefer to manage agents locally instead of auto-syncing from git, set `HOST_OPENCODE_CONFIG_DIR` in `.ddev/.env.opencode`:
+
+```bash
+HOST_OPENCODE_CONFIG_DIR=${HOME}/my-local-agents/
+```
+
+When set, this takes precedence over the synced agents volume.
 
 ## Architecture
 
@@ -150,6 +161,7 @@ For autonomous task execution (overnight runs), see [ddev-ralph](https://github.
 - [drupal-ai-agents](https://github.com/trebormc/drupal-ai-agents) -- 13 agents, 4 rules, 14 skills for Drupal development
 - [ddev-claude-code](https://github.com/trebormc/ddev-claude-code) -- Alternative: Claude Code AI for DDEV
 - [ddev-ralph](https://github.com/trebormc/ddev-ralph) -- Autonomous task runner
+- [ddev-agents-sync](https://github.com/trebormc/ddev-agents-sync) -- Agents auto-sync from git (auto-installed)
 - [ddev-beads](https://github.com/trebormc/ddev-beads) -- Beads task tracker (auto-installed)
 - [ddev-playwright-mcp](https://github.com/trebormc/ddev-playwright-mcp) -- Playwright browser automation (auto-installed)
 
