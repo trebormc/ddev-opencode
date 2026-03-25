@@ -77,7 +77,9 @@ TZ=UTC
 
 ### Agent Configuration
 
-By default, agents, rules, and skills are automatically synced from [drupal-ai-agents](https://github.com/trebormc/drupal-ai-agents) via the [ddev-agents-sync](https://github.com/trebormc/ddev-agents-sync) container. No manual setup is needed.
+Agents, rules, and skills are automatically synced from [drupal-ai-agents](https://github.com/trebormc/drupal-ai-agents) via [ddev-agents-sync](https://github.com/trebormc/ddev-agents-sync). No manual setup is needed.
+
+The sync process resolves model tokens (like `${MODEL_CHEAP}`) to OpenCode model names (like `anthropic/claude-haiku-4-5`) using the `.env.agents` file from the agent repository. See [drupal-ai-agents](https://github.com/trebormc/drupal-ai-agents) for details on model tokens and customization.
 
 To customize which repos are synced, edit `.ddev/.env.agents-sync`:
 
@@ -88,15 +90,25 @@ AGENTS_REPOS=https://github.com/trebormc/drupal-ai-agents.git,https://github.com
 
 To manually trigger an update: `ddev agents-update`
 
-### Local Path Override
+### Changing agent models
 
-If you prefer to manage agents locally instead of auto-syncing from git, set `HOST_OPENCODE_CONFIG_DIR` in `.ddev/.env.opencode`:
+To change which AI models your agents use, override the `.env.agents` file. Create a private git repo with just an `.env.agents` and add it as a second entry:
 
 ```bash
-HOST_OPENCODE_CONFIG_DIR=${HOME}/my-local-agents/
+AGENTS_REPOS=https://github.com/trebormc/drupal-ai-agents.git,https://github.com/your-org/my-config.git
 ```
 
-When set, this takes precedence over the synced agents volume.
+See [Model Token System](https://github.com/trebormc/ddev-agents-sync#model-token-system) for the full list of tokens and how to customize them.
+
+### Local config override
+
+If you want to use a custom `opencode.json` (e.g., to add a LiteLLM proxy or change global permissions), set `HOST_OPENCODE_CONFIG_DIR` in `.ddev/.env.opencode`:
+
+```bash
+HOST_OPENCODE_CONFIG_DIR=${HOME}/my-opencode-config/
+```
+
+Place your `opencode.json` in that directory. It takes precedence over the default from the agent repository. Agents, rules, and skills are always loaded from the synced volume regardless of this setting.
 
 ## Architecture
 
