@@ -93,20 +93,34 @@ RUN echo 'export PATH="${HOME}/.npm-global/bin:${HOME}/go/bin:$PATH"' >> ~/.bash
     && echo 'echo "   Site URL: \$DDEV_PRIMARY_URL"' >> ~/.bashrc \
     && echo 'echo ""' >> ~/.bashrc \
     && echo 'echo "Commands: opencode | drush | phpunit | phpstan | web-shell | bd"' >> ~/.bashrc \
-    && echo '' >> ~/.bashrc \
-    && echo '# Set up config from synced agents volume' >> ~/.bashrc \
-    && echo 'if [ -d "/agents-opencode" ]; then' >> ~/.bashrc \
-    && echo '  mkdir -p "$HOME/.config/opencode"' >> ~/.bashrc \
-    && echo '  # Always symlink agent/rules/skills from synced volume' >> ~/.bashrc \
-    && echo '  for d in /agents-opencode/agent /agents-opencode/rules /agents-opencode/skills; do' >> ~/.bashrc \
-    && echo '    [ -d "$d" ] && ln -sfn "$d" "$HOME/.config/opencode/"' >> ~/.bashrc \
-    && echo '  done' >> ~/.bashrc \
-    && echo '  # Symlink CLAUDE.md from synced volume' >> ~/.bashrc \
-    && echo '  [ -f "/agents-opencode/CLAUDE.md" ] && ln -sf "/agents-opencode/CLAUDE.md" "$HOME/.config/opencode/"' >> ~/.bashrc \
-    && echo '  # Symlink config files from synced volume if user has no custom ones' >> ~/.bashrc \
-    && echo '  for f in /agents-opencode/*.json; do' >> ~/.bashrc \
-    && echo '    [ -f "$f" ] && [ ! -f "$HOME/.config/opencode/$(basename "$f")" ] && ln -sf "$f" "$HOME/.config/opencode/"' >> ~/.bashrc \
-    && echo '  done' >> ~/.bashrc \
-    && echo 'fi' >> ~/.bashrc
+    && echo '' >> ~/.bashrc
+
+# Create entrypoint script that sets up agents before running the main command
+RUN cat > /usr/local/bin/entrypoint.sh << 'ENTRY'
+#!/bin/bash
+
+# Set up config from synced agents volume
+if [ -d "/agents-opencode" ]; then
+  mkdir -p "$HOME/.config/opencode"
+
+  # Always symlink agent/rules/skills from synced volume
+  for d in /agents-opencode/agent /agents-opencode/rules /agents-opencode/skills; do
+    [ -d "$d" ] && ln -sfn "$d" "$HOME/.config/opencode/"
+  done
+
+  # Symlink CLAUDE.md from synced volume
+  [ -f "/agents-opencode/CLAUDE.md" ] && ln -sf "/agents-opencode/CLAUDE.md" "$HOME/.config/opencode/"
+
+  # Symlink config files from synced volume if user has no custom ones
+  for f in /agents-opencode/*.json; do
+    [ -f "$f" ] && [ ! -f "$HOME/.config/opencode/$(basename "$f")" ] && ln -sf "$f" "$HOME/.config/opencode/"
+  done
+fi
+
+exec "$@"
+ENTRY
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 WORKDIR /var/www/html
