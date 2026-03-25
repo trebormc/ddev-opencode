@@ -99,14 +99,10 @@ RUN echo 'export PATH="${HOME}/.npm-global/bin:${HOME}/go/bin:$PATH"' >> ~/.bash
     && echo '  done' >> ~/.bashrc \
     && echo '  # Symlink CLAUDE.md from synced volume' >> ~/.bashrc \
     && echo '  [ -f "/agents-opencode/CLAUDE.md" ] && ln -sf "/agents-opencode/CLAUDE.md" "$HOME/.config/opencode/"' >> ~/.bashrc \
-    && echo '  # Use synced opencode.json.example as default if user has no custom config' >> ~/.bashrc \
-    && echo '  if [ ! -f "$HOME/.config/opencode/opencode.json" ] && [ -f "/agents-opencode/opencode.json.example" ]; then' >> ~/.bashrc \
-    && echo '    ln -sf "/agents-opencode/opencode.json.example" "$HOME/.config/opencode/opencode.json"' >> ~/.bashrc \
-    && echo '  fi' >> ~/.bashrc \
-    && echo '  # Symlink notifier config if user has no custom one' >> ~/.bashrc \
-    && echo '  if [ ! -f "$HOME/.config/opencode/opencode-notifier.json" ] && [ -f "/agents-opencode/opencode-notifier.json" ]; then' >> ~/.bashrc \
-    && echo '    ln -sf "/agents-opencode/opencode-notifier.json" "$HOME/.config/opencode/"' >> ~/.bashrc \
-    && echo '  fi' >> ~/.bashrc \
+    && echo '  # Symlink config files from synced volume if user has no custom ones' >> ~/.bashrc \
+    && echo '  for f in /agents-opencode/*.json; do' >> ~/.bashrc \
+    && echo '    [ -f "$f" ] && [ ! -f "$HOME/.config/opencode/$(basename "$f")" ] && ln -sf "$f" "$HOME/.config/opencode/"' >> ~/.bashrc \
+    && echo '  done' >> ~/.bashrc \
     && echo 'fi' >> ~/.bashrc
 
 WORKDIR /var/www/html
