@@ -47,9 +47,6 @@ RUN existing_user=$(getent passwd ${USER_UID} | cut -d: -f1) \
     && echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/${USERNAME} \
     && chmod 0440 /etc/sudoers.d/${USERNAME}
 
-# Add user to docker group
-RUN usermod -aG docker ${USERNAME} || true
-
 # Install bd wrapper — delegates to Beads container via docker exec
 RUN printf '#!/bin/bash\nexec docker exec -i "$BEADS_CONTAINER" bd "$@"\n' > /usr/local/bin/bd \
     && chmod +x /usr/local/bin/bd
