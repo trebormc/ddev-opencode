@@ -25,9 +25,39 @@ services:
 
     volumes:
       - ../:/var/www/html
-      - agents-opencode-data:/agents-opencode:ro
+      # Agents, skills, rules — mounted directly from agents-sync volume
+      - type: volume
+        source: agents-opencode-data
+        target: /home/opencode/.config/opencode/agent
+        volume:
+          subpath: agent
+        read_only: true
+      - type: volume
+        source: agents-opencode-data
+        target: /home/opencode/.config/opencode/skills
+        volume:
+          subpath: skills
+        read_only: true
+      - type: volume
+        source: agents-opencode-data
+        target: /home/opencode/.config/opencode/rules
+        volume:
+          subpath: rules
+        read_only: true
+      # CLAUDE.md from agents-sync
+      - type: volume
+        source: agents-opencode-data
+        target: /home/opencode/.config/opencode/CLAUDE.md
+        volume:
+          subpath: CLAUDE.md
+        read_only: true
+      # Shared config — credentials, opencode.json, notifier (read-write)
       - ${HOST_OPENCODE_DIR}/auth:/home/opencode/.local/share/opencode
-      - ${HOST_OPENCODE_DIR}/config:/home/opencode/.config/opencode
+      - ${HOST_OPENCODE_DIR}/config/opencode.json:/home/opencode/.config/opencode/opencode.json
+      - ${HOST_OPENCODE_DIR}/config/opencode-notifier.json:/home/opencode/.config/opencode/opencode-notifier.json
+      # Plugin node_modules (persistent across restarts)
+      - ${HOST_OPENCODE_DIR}/config/node_modules:/home/opencode/.config/opencode/node_modules
+      # Claude credentials for sync
       - ${HOST_CLAUDE_CONFIG_DIR}:/home/opencode/.claude-credentials:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ddev-global-cache:/mnt/ddev-global-cache

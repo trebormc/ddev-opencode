@@ -18,41 +18,14 @@ if [ -z "$_DOCKER_GROUP_FIXED" ] && [ -S /var/run/docker.sock ] && ! docker info
   fi
 fi
 
-# --- 2. Set up config from synced agents volume ---
-if [ -d "/agents-opencode" ]; then
+# --- 2. Install notifier plugin if not already installed ---
+# Agents, skills, rules, CLAUDE.md, and config files are mounted directly
+# via docker-compose volume subpaths — no symlinks needed.
+if [ ! -d "$HOME/.config/opencode/node_modules/@mohak34/opencode-notifier" ]; then
   mkdir -p "$HOME/.config/opencode"
-
-  # Always symlink agent/rules/skills from synced volume to OpenCode config dir
-  for d in /agents-opencode/agent /agents-opencode/rules /agents-opencode/skills; do
-    [ -d "$d" ] && ln -sfn "$d" "$HOME/.config/opencode/"
-  done
-
-  # Also symlink to .claude/ path for cross-tool compatibility
-  mkdir -p /var/www/html/.claude
-  [ -d "/agents-opencode/skills" ] && ln -sfn /agents-opencode/skills /var/www/html/.claude/skills
-  [ -d "/agents-opencode/rules" ] && ln -sfn /agents-opencode/rules /var/www/html/.claude/rules
-
-  # Symlink CLAUDE.md from synced volume
-  [ -f "/agents-opencode/CLAUDE.md" ] && ln -sf "/agents-opencode/CLAUDE.md" "$HOME/.config/opencode/"
-
-  # Symlink config files from synced volume if user has no custom ones.
-  # Skip files that already exist as real files (not symlinks) — those were
-  # created by the installer on the host and take precedence.
-  for f in /agents-opencode/*.json; do
-    [ -f "$f" ] || continue
-    local_file="$HOME/.config/opencode/$(basename "$f")"
-    # Only create symlink if file doesn't exist or is already a symlink (update it)
-    if [ ! -e "$local_file" ] || [ -L "$local_file" ]; then
-      ln -sf "$f" "$local_file"
-    fi
-  done
-
-  # Install notifier plugin if not already installed
-  if [ ! -d "$HOME/.config/opencode/node_modules/@mohak34/opencode-notifier" ]; then
-    cd "$HOME/.config/opencode"
-    npm install --save @mohak34/opencode-notifier@latest 2>/dev/null || true
-    cd /var/www/html
-  fi
+  cd "$HOME/.config/opencode"
+  npm install --save @mohak34/opencode-notifier@latest 2>/dev/null || true
+  cd /var/www/html
 fi
 
 exec "$@"
