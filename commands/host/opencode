@@ -29,7 +29,9 @@ case "$1" in
         CUSTOM_TITLE="$*"
         set_tab_title "$CUSTOM_TITLE"
         trap restore_tab_title EXIT
-        docker exec -it -u opencode "$OPENCODE_CONTAINER" opencode
+        docker exec -it -u opencode \
+            -e DDEV_TUI_TITLE="${CUSTOM_TITLE:-OpenCode}" \
+            "$OPENCODE_CONTAINER" opencode
         ;;
     "shell"|"bash")
         set_tab_title "shell"
