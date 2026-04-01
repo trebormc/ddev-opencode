@@ -20,7 +20,6 @@ project_files:
   - docker-compose.opencode.yaml
   - opencode-build/Dockerfile.opencode
   - opencode-build/entrypoint.sh
-  - opencode-build/sync-credentials.sh
   - commands/host/opencode
 
 global_files: []
@@ -38,10 +37,6 @@ post_install_actions:
     # need to configure once. Change only if you need a custom location.
     # Subdirectories: auth/ (credentials), config/ (opencode.json, custom overrides)
     HOST_OPENCODE_DIR=${HOME}/.ddev/opencode
-
-    # Claude Code config directory (for automatic OAuth credential sync)
-    # If ddev-claude-code is installed, credentials are synced automatically
-    HOST_CLAUDE_CONFIG_DIR=${HOME}/.ddev/claude-code
 
     # Timezone
     TZ=UTC

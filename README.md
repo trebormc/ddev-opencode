@@ -42,26 +42,9 @@ This automatically installs all dependencies:
 
 ## Authentication
 
-**Option A -- Automatic sync from Claude Code (recommended):**
+Run `ddev opencode` and follow the prompts. OpenCode handles authentication natively -- no custom commands or manual file editing needed.
 
-If [ddev-claude-code](https://github.com/trebormc/ddev-claude-code) is installed, OAuth credentials are synced automatically every 60 seconds. Just run `ddev claude-code claude login` once and OpenCode will pick up the credentials.
-
-**Option B -- Manual `auth.json`:**
-
-Create `~/.ddev/opencode/auth/auth.json`:
-
-```json
-{
-  "anthropic": {
-    "type": "oauth",
-    "access": "sk-ant-oat01-YOUR_ACCESS_TOKEN",
-    "refresh": "sk-ant-ort01-YOUR_REFRESH_TOKEN",
-    "expires": 0
-  }
-}
-```
-
-Credentials are stored in a shared directory on the host (`~/.ddev/opencode/auth/` by default), so you only need to configure them **once** -- all your DDEV projects share the same credentials automatically.
+Credentials are stored in a shared directory on the host (`~/.ddev/opencode/auth/` by default), so you only need to authenticate **once** -- all your DDEV projects share the same credentials automatically.
 
 ## Configuration
 
@@ -72,9 +55,6 @@ After installation, environment variables are in `.ddev/.env.opencode`:
 # Shared across ALL DDEV projects. Change only if you need a custom location.
 # Subdirectories: auth/ (credentials), config/ (opencode.json, custom overrides)
 HOST_OPENCODE_DIR=${HOME}/.ddev/opencode
-
-# Claude Code config directory (for automatic OAuth credential sync)
-HOST_CLAUDE_CONFIG_DIR=${HOME}/.ddev/claude-code
 
 # Timezone
 TZ=UTC
