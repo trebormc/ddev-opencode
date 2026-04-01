@@ -50,6 +50,75 @@ post_install_actions:
     else
       echo ".env.opencode already exists, skipping"
     fi
+    # Create default opencode.json if missing
+    OC_CONFIG="${HOST_OPENCODE_DIR:-${HOME}/.ddev/opencode}/config"
+    OC_JSON="$OC_CONFIG/opencode.json"
+    if [ ! -f "$OC_JSON" ] || [ -L "$OC_JSON" ]; then
+      rm -f "$OC_JSON"
+      cat > "$OC_JSON" << 'OCEOF'
+    {
+      "$schema": "https://opencode.ai/config.json",
+      "model": "anthropic/claude-opus-4-6",
+      "small_model": "anthropic/claude-haiku-4-5",
+      "autoupdate": true,
+      "instructions": [
+        "rules/beads-workflow.md",
+        "rules/drupal-essentials.md",
+        "rules/quality-tools-setup.md",
+        "rules/lessons-learned.md"
+      ],
+      "permission": {
+        "edit": "allow",
+        "write": "allow",
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "webfetch": "allow",
+        "skill": {
+          "*": "allow"
+        },
+        "bash": {
+          "rm -rf /": "deny",
+          "rm -rf /*": "deny",
+          "sudo *": "deny",
+          "tail *": "allow",
+          "git commit*": "deny",
+          "git push*": "deny",
+          "git pull*": "deny",
+          "git add*": "deny",
+          "git merge*": "deny",
+          "git rebase*": "deny",
+          "git checkout*": "deny",
+          "git reset*": "deny",
+          "git stash*": "deny",
+          "git tag*": "deny",
+          "git diff*": "allow",
+          "git log*": "allow",
+          "git status*": "allow",
+          "git branch*": "allow",
+          "git show*": "allow",
+          "*": "allow"
+        }
+      },
+      "formatter": {
+        "phpcbf": {
+          "command": ["docker", "exec", "$WEB_CONTAINER", "./vendor/bin/phpcbf", "--standard=Drupal,DrupalPractice", "$FILE"],
+          "extensions": [".php", ".module", ".inc", ".install", ".theme", ".profile"]
+        }
+      },
+      "mcp": {
+        "playwright": {
+          "type": "remote",
+          "url": "http://playwright-mcp:8931/mcp",
+          "enabled": true,
+          "timeout": 30000
+        }
+      },
+      "plugin": ["@mohak34/opencode-notifier@latest"]
+    }
+    OCEOF
+      echo "Created opencode.json in $OC_CONFIG"
+    fi
     # Create default opencode-notifier.json if missing
     OC_CONFIG="${HOST_OPENCODE_DIR:-${HOME}/.ddev/opencode}/config"
     NOTIFIER_FILE="$OC_CONFIG/opencode-notifier.json"
