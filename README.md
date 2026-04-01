@@ -174,17 +174,17 @@ Inside the container (via `ddev opencode shell`), these helper functions are ava
 | `web-shell` | Open an interactive shell in the web container |
 | `bd` | Run Beads task tracking commands |
 
-## Desktop Notifications
+## Desktop Notifications (optional)
 
-OpenCode can send desktop notifications when tasks complete or need attention. If you use [drupal-ai-agents](https://github.com/trebormc/drupal-ai-agents), the notification configuration is included by default.
+OpenCode can send desktop notifications when tasks complete or need attention. Notifications are pre-configured via `opencode-notifier.json` (ships with [drupal-ai-agents](https://github.com/trebormc/drupal-ai-agents)) -- no setup needed inside the container.
 
-To receive notifications, start the notification bridge on your host:
+To receive notifications, install the [ai-notify-bridge](https://github.com/trebormc/ai-notify-bridge) on your host (one-time setup):
 
 ```bash
-./scripts/start-notify-bridge.sh
+curl -fsSL https://raw.githubusercontent.com/trebormc/ai-notify-bridge/main/install.sh | bash
 ```
 
-See the [DDEV AI workspace](https://github.com/trebormc/ddev-ai-workspace) for full notification setup details.
+If the bridge is not installed or not running, OpenCode works normally -- notification calls fail silently with no impact.
 
 ## Autonomous Execution
 
