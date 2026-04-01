@@ -135,9 +135,32 @@ OpenCode communicates with the web container via `docker exec` (through the moun
 | Command | Description |
 |---------|-------------|
 | `ddev opencode` | Launch the OpenCode TUI |
-| `ddev opencode tui [title]` | Launch TUI with a custom tab title |
+| `ddev opencode tui` | Launch TUI (same as above) |
+| `ddev opencode tui Fix login bug` | Launch TUI with a custom tab title |
 | `ddev opencode shell` | Open a bash shell in the container |
 | `ddev opencode <command>` | Run any command in the container |
+
+### Tab title for multi-project workflows
+
+When working on multiple DDEV projects at the same time, it can be hard to tell which terminal belongs to which project. The `tui` subcommand sets the terminal tab title to **`project-name - custom text`**, so you can identify each terminal at a glance.
+
+The project name (`DDEV_SITENAME`) is always included automatically. If you add extra text after `tui`, it appears as a label -- useful for describing the task you are working on in that terminal.
+
+```bash
+# Tab title: "mysite - OpenCode"
+ddev opencode
+
+# Tab title: "mysite - OpenCode"  (explicit tui, same result)
+ddev opencode tui
+
+# Tab title: "mysite - Fix login redirect bug"
+ddev opencode tui Fix login redirect bug
+
+# Tab title: "mysite - TASK-42 migrate users"
+ddev opencode tui TASK-42 migrate users
+```
+
+This way, if you have three terminals open (two projects, two tasks), each tab shows exactly where you are and what you are doing.
 
 ### Shell Helpers
 
