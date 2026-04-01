@@ -39,6 +39,13 @@ if [ -d "/agents-opencode" ]; then
   for f in /agents-opencode/*.json; do
     [ -f "$f" ] && [ ! -f "$HOME/.config/opencode/$(basename "$f")" ] && ln -sf "$f" "$HOME/.config/opencode/"
   done
+
+  # Install notifier plugin if not already installed
+  if [ ! -d "$HOME/.config/opencode/node_modules/@mohak34/opencode-notifier" ]; then
+    cd "$HOME/.config/opencode"
+    npm install --save @mohak34/opencode-notifier@latest 2>/dev/null || true
+    cd /var/www/html
+  fi
 fi
 
 exec "$@"
