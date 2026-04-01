@@ -1,4 +1,5 @@
 #!/bin/bash
+#ddev-generated
 
 # =============================================================================
 # Sync Claude Code OAuth credentials to OpenCode auth.json
