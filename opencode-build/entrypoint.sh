@@ -35,9 +35,16 @@ if [ -d "/agents-opencode" ]; then
   # Symlink CLAUDE.md from synced volume
   [ -f "/agents-opencode/CLAUDE.md" ] && ln -sf "/agents-opencode/CLAUDE.md" "$HOME/.config/opencode/"
 
-  # Symlink config files from synced volume if user has no custom ones
+  # Symlink config files from synced volume if user has no custom ones.
+  # Skip files that already exist as real files (not symlinks) — those were
+  # created by the installer on the host and take precedence.
   for f in /agents-opencode/*.json; do
-    [ -f "$f" ] && [ ! -f "$HOME/.config/opencode/$(basename "$f")" ] && ln -sf "$f" "$HOME/.config/opencode/"
+    [ -f "$f" ] || continue
+    local_file="$HOME/.config/opencode/$(basename "$f")"
+    # Only create symlink if file doesn't exist or is already a symlink (update it)
+    if [ ! -e "$local_file" ] || [ -L "$local_file" ]; then
+      ln -sf "$f" "$local_file"
+    fi
   done
 
   # Install notifier plugin if not already installed

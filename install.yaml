@@ -50,6 +50,43 @@ post_install_actions:
     else
       echo ".env.opencode already exists, skipping"
     fi
+    # Create default opencode-notifier.json if missing
+    OC_CONFIG="${HOST_OPENCODE_DIR:-${HOME}/.ddev/opencode}/config"
+    NOTIFIER_FILE="$OC_CONFIG/opencode-notifier.json"
+    if [ ! -f "$NOTIFIER_FILE" ] || [ -L "$NOTIFIER_FILE" ]; then
+      rm -f "$NOTIFIER_FILE"
+      cat > "$NOTIFIER_FILE" << 'NOTIFIEREOF'
+    {
+      "sound": false,
+      "notification": false,
+      "timeout": 10,
+      "showProjectName": true,
+      "command": {
+        "enabled": true,
+        "path": "/bin/sh",
+        "args": [
+          "-c",
+          "curl -s --connect-timeout 1 -X POST http://host.docker.internal:5454/notify -H 'Content-Type: application/json' -d \"{\\\"title\\\":\\\"[$DDEV_SITENAME] ${DDEV_TUI_TITLE:-OpenCode}\\\",\\\"message\\\":\\\"{message}\\\"}\""
+        ],
+        "minDuration": 5
+      },
+      "events": {
+        "permission": true,
+        "complete": true,
+        "subagent_complete": false,
+        "error": true,
+        "question": true
+      },
+      "messages": {
+        "permission": "Needs your permission",
+        "complete": "Task completed",
+        "error": "Error detected",
+        "question": "Waiting for your response"
+      }
+    }
+    NOTIFIEREOF
+      echo "Created opencode-notifier.json in $OC_CONFIG"
+    fi
     echo "OpenCode add-on installed successfully!"
 
 removal_actions:
