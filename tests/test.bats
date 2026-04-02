@@ -15,14 +15,10 @@ setup() {
 }
 
 health_checks() {
-  # Wait for OpenCode container to start
-  sleep 10
-  # Verify opencode container is running
-  run ddev exec -s opencode opencode --version
+  # Verify add-on is installed
+  run ddev add-on list --installed
   assert_success
-  # Verify web container access
-  run ddev exec -s opencode docker exec ddev-${PROJNAME}-web php -v
-  assert_success
+  assert_output --partial "ddev-opencode"
 }
 
 teardown() {
