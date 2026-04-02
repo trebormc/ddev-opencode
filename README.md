@@ -15,12 +15,8 @@ ddev add-on get trebormc/ddev-opencode
 # 2. Restart DDEV
 ddev restart
 
-# 3. Set up credentials (choose one)
-# Option A: If ddev-claude-code is installed, OAuth credentials are synced automatically
-# Option B: Create auth.json manually (see Authentication section below)
-
-# 4. Launch OpenCode
-ddev opencode
+# 3. Launch OpenCode (authenticate on first run)
+ddev opencode  # or: ddev oc
 ```
 
 ## Prerequisites
@@ -64,7 +60,7 @@ TZ=UTC
 
 Agents, rules, and skills are automatically synced from [drupal-ai-agents](https://github.com/trebormc/drupal-ai-agents) via [ddev-agents-sync](https://github.com/trebormc/ddev-agents-sync). No manual setup is needed.
 
-The sync process resolves model tokens (like `${MODEL_CHEAP}`) to OpenCode model names (like `anthropic/claude-haiku-4-5`) using the `.env.agents` file from the agent repository. See [drupal-ai-agents](https://github.com/trebormc/drupal-ai-agents) for details on model tokens and customization.
+The sync process resolves model tokens (like `${MODEL_CHEAP}`) to OpenCode model names (like `opencode/gpt-5-nano`) using the `.env.agents` file from the agent repository. See [drupal-ai-agents](https://github.com/trebormc/drupal-ai-agents) for details on model tokens and customization.
 
 To customize which repos are synced, edit `.ddev/.env.agents-sync`:
 
@@ -115,6 +111,7 @@ OpenCode communicates with the web container via `docker exec` (through the moun
 | Command | Description |
 |---------|-------------|
 | `ddev opencode` | Launch the OpenCode TUI |
+| `ddev oc` | Alias for `ddev opencode` |
 | `ddev opencode tui` | Launch TUI (same as above) |
 | `ddev opencode tui Fix login bug` | Launch TUI with a custom tab title |
 | `ddev opencode shell` | Open a bash shell in the container |
@@ -169,6 +166,13 @@ If the bridge is not installed or not running, OpenCode works normally -- notifi
 ## Autonomous Execution
 
 For autonomous task execution (overnight runs), see [ddev-ralph](https://github.com/trebormc/ddev-ralph).
+
+## Uninstallation
+
+```bash
+ddev add-on remove ddev-opencode
+ddev restart
+```
 
 ## Part of DDEV AI Workspace
 
