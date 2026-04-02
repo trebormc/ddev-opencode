@@ -60,9 +60,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ddev-global-cache:/mnt/ddev-global-cache
 
-    expose:
-      - "4096"
-
     environment:
       - DDEV_SITENAME
       - DDEV_PRIMARY_URL
@@ -74,9 +71,6 @@ services:
       - BEADS_CONTAINER=ddev-${DDEV_SITENAME}-beads
       - OPENCODE_DISABLE_TERMINAL_TITLE=1
       - TZ=${TZ:-UTC}
-      - VIRTUAL_HOST=${DDEV_HOSTNAME}
-      - HTTP_EXPOSE=4096:4096
-      - HTTPS_EXPOSE=4096:4096
 
     stdin_open: true
     tty: true
@@ -88,7 +82,7 @@ services:
       - default
       - ddev_default
 
-    command: ["bash", "-c", "exec opencode web --port 4096 --hostname 0.0.0.0"]
+    command: ["sleep", "infinity"]
 
 networks:
   ddev_default:

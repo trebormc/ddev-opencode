@@ -15,7 +15,13 @@ pre_install_actions:
     #ddev-description:Creating shared OpenCode config directory
     OC_DIR="${HOME}/.ddev/opencode"
     mkdir -p "$OC_DIR/config" "$OC_DIR/config/node_modules"
-    touch "$OC_DIR/auth.json"
+    # Migrate credentials from old auth/ directory if needed
+    if [ -f "$OC_DIR/auth/auth.json" ] && [ ! -s "$OC_DIR/auth.json" ]; then
+      cp "$OC_DIR/auth/auth.json" "$OC_DIR/auth.json"
+      echo "Migrated credentials from auth/ directory to auth.json"
+    fi
+    # Create empty auth.json if it doesn't exist
+    [ -f "$OC_DIR/auth.json" ] || touch "$OC_DIR/auth.json"
 
 project_files:
   - docker-compose.opencode.yaml
