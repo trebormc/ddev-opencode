@@ -14,7 +14,8 @@ pre_install_actions:
   - |
     #ddev-description:Creating shared OpenCode config directory
     OC_DIR="${HOME}/.ddev/opencode"
-    mkdir -p "$OC_DIR/auth" "$OC_DIR/config" "$OC_DIR/config/node_modules"
+    mkdir -p "$OC_DIR/config" "$OC_DIR/config/node_modules"
+    touch "$OC_DIR/auth.json"
 
 project_files:
   - docker-compose.opencode.yaml
@@ -35,7 +36,7 @@ post_install_actions:
     # Shared OpenCode directory for credentials and config.
     # This directory is shared across ALL DDEV projects so you only
     # need to configure once. Change only if you need a custom location.
-    # Subdirectories: auth/ (credentials), config/ (opencode.json, custom overrides)
+    # Files: auth.json (credentials), config/ (opencode.json, custom overrides)
     HOST_OPENCODE_DIR=${HOME}/.ddev/opencode
 
     # Timezone

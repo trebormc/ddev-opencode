@@ -51,8 +51,8 @@ services:
         volume:
           subpath: CLAUDE.md
         read_only: true
-      # Shared config — credentials, opencode.json, notifier (read-write)
-      - ${HOST_OPENCODE_DIR}/auth:/home/opencode/.local/share/opencode
+      # Shared credentials — only auth.json, not the full directory
+      - ${HOST_OPENCODE_DIR}/auth.json:/home/opencode/.local/share/opencode/auth.json
       - ${HOST_OPENCODE_DIR}/config/opencode.json:/home/opencode/.config/opencode/opencode.json
       - ${HOST_OPENCODE_DIR}/config/opencode-notifier.json:/home/opencode/.config/opencode/opencode-notifier.json
       # Plugin node_modules (persistent across restarts)
