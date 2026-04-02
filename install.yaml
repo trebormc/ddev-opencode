@@ -28,6 +28,7 @@ project_files:
   - opencode-build/Dockerfile.opencode
   - opencode-build/entrypoint.sh
   - commands/host/opencode
+  - commands/host/oc
 
 global_files: []
 
