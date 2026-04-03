@@ -18,10 +18,14 @@ services:
     working_dir: /var/www/html
 
     depends_on:
-      - web
-      - playwright-mcp
-      - beads
-      - agents-sync
+      web:
+        condition: service_started
+      playwright-mcp:
+        condition: service_started
+      beads:
+        condition: service_started
+      agents-sync:
+        condition: service_healthy
 
     volumes:
       - ../:/var/www/html
