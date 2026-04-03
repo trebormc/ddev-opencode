@@ -30,7 +30,7 @@ services:
         source: agents-opencode-data
         target: /home/opencode/.config/opencode/agent
         volume:
-          subpath: agent
+          subpath: agents
         read_only: true
       - type: volume
         source: agents-opencode-data
