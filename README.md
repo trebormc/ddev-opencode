@@ -40,7 +40,7 @@ This automatically installs the required dependencies:
 
 ## Prerequisites
 
-- [DDEV](https://ddev.readthedocs.io/) >= v1.23.5
+- [DDEV](https://ddev.readthedocs.io/) >= v1.24.10
 - An API key (Anthropic, OpenAI, or a LiteLLM proxy)
 
 ## Authentication
