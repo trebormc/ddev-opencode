@@ -29,32 +29,8 @@ services:
 
     volumes:
       - ../:/var/www/html
-      # Agents, skills, rules — mounted directly from agents-sync volume
-      - type: volume
-        source: agents-opencode-data
-        target: /home/opencode/.config/opencode/agent
-        volume:
-          subpath: agents
-        read_only: true
-      - type: volume
-        source: agents-opencode-data
-        target: /home/opencode/.config/opencode/skills
-        volume:
-          subpath: skills
-        read_only: true
-      - type: volume
-        source: agents-opencode-data
-        target: /home/opencode/.config/opencode/rules
-        volume:
-          subpath: rules
-        read_only: true
-      # CLAUDE.md from agents-sync
-      - type: volume
-        source: agents-opencode-data
-        target: /home/opencode/.config/opencode/CLAUDE.md
-        volume:
-          subpath: CLAUDE.md
-        read_only: true
+      # Agents volume from agents-sync (agents, skills, rules, CLAUDE.md, config)
+      - agents-opencode-data:/agents-data:ro
       # Shared credentials — only auth.json, not the full directory
       - ${HOST_OPENCODE_DIR}/auth.json:/home/opencode/.local/share/opencode/auth.json
       - ${HOST_OPENCODE_DIR}/config/opencode.json:/home/opencode/.config/opencode/opencode.json
