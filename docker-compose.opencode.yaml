@@ -65,6 +65,7 @@ services:
       - ddev-global-cache:/mnt/ddev-global-cache
 
     environment:
+      - HOME=/home/opencode
       - DDEV_SITENAME
       - DDEV_PRIMARY_URL
       - DDEV_DOCROOT

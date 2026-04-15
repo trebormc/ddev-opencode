@@ -63,6 +63,7 @@ USER ${USERNAME}
 WORKDIR ${USER_HOME}
 
 # Configure npm global packages in user home
+ENV HOME=${USER_HOME}
 ENV NPM_CONFIG_PREFIX=${USER_HOME}/.npm-global
 ENV PATH="${USER_HOME}/.npm-global/bin:${PATH}"
 
