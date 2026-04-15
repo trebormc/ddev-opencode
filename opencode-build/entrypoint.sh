@@ -12,19 +12,17 @@ if [ -d "$HOME" ] && [ ! -w "$HOME" ]; then
   sudo chown -R "$(id -u):$(id -g)" "$HOME"
 fi
 
-# --- 1. Link agents, skills, rules, CLAUDE.md and config from agents-sync volume ---
+# --- 1. Copy CLAUDE.md and config from agents-sync volume ---
+# Directories (agents, skills, rules) are mounted via volume subpaths in docker-compose.
+# Files cannot use subpath mounts (Docker fails on empty volumes), so we copy them.
 AGENTS_DATA="/agents-data"
 if [ -d "$AGENTS_DATA" ]; then
   OC_CONFIG="$HOME/.config/opencode"
   mkdir -p "$OC_CONFIG"
-  for dir in agents skills rules; do
-    [ -d "$AGENTS_DATA/$dir" ] && ln -sfn "$AGENTS_DATA/$dir" "$OC_CONFIG/$dir"
-  done
-  # Symlink OpenCode-specific config files (opencode.json, notifier, etc.)
+  [ -f "$AGENTS_DATA/CLAUDE.md" ] && cp "$AGENTS_DATA/CLAUDE.md" "$OC_CONFIG/CLAUDE.md"
   for f in "$AGENTS_DATA"/*.json; do
-    [ -f "$f" ] && ln -sf "$f" "$OC_CONFIG/$(basename "$f")"
+    [ -f "$f" ] && cp "$f" "$OC_CONFIG/$(basename "$f")"
   done
-  [ -f "$AGENTS_DATA/CLAUDE.md" ] && ln -sf "$AGENTS_DATA/CLAUDE.md" "$OC_CONFIG/CLAUDE.md"
 fi
 
 # --- 2. Fix Docker socket access if needed ---
