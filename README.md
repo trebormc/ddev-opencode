@@ -12,33 +12,33 @@ Agents, rules, and skills for Drupal development are automatically synced from [
 
 ## Quick Start
 
+The **recommended way** to install this add-on is through the [DDEV AI Workspace](https://github.com/trebormc/ddev-ai-workspace), which installs all tools and dependencies with a single command:
+
 ```bash
-# 1. Install the add-on
-ddev add-on get trebormc/ddev-opencode
-
-# 2. Restart DDEV
+ddev add-on get trebormc/ddev-ai-workspace
 ddev restart
-
-# 3. Launch OpenCode (authenticate on first run)
 ddev opencode  # or: ddev oc
 ```
+
+### Standalone installation
+
+If you only need OpenCode without the rest of the workspace, you can install it individually. This requires familiarity with the DDEV add-on ecosystem and its dependencies:
+
+```bash
+ddev add-on get trebormc/ddev-opencode
+ddev restart
+ddev opencode  # or: ddev oc
+```
+
+This automatically installs the required dependencies:
+- [ddev-agents-sync](https://github.com/trebormc/ddev-agents-sync) -- auto-syncs AI agents from git
+- [ddev-beads](https://github.com/trebormc/ddev-beads) -- task tracking
+- [ddev-playwright-mcp](https://github.com/trebormc/ddev-playwright-mcp) -- browser automation
 
 ## Prerequisites
 
 - [DDEV](https://ddev.readthedocs.io/) >= v1.23.5
 - An API key (Anthropic, OpenAI, or a LiteLLM proxy)
-
-## Installation
-
-```bash
-ddev add-on get trebormc/ddev-opencode
-ddev restart
-```
-
-This automatically installs all dependencies:
-- [ddev-agents-sync](https://github.com/trebormc/ddev-agents-sync) -- auto-syncs AI agents from git
-- [ddev-beads](https://github.com/trebormc/ddev-beads) -- task tracking
-- [ddev-playwright-mcp](https://github.com/trebormc/ddev-playwright-mcp) -- browser automation
 
 ## Authentication
 
