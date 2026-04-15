@@ -8,7 +8,7 @@ A DDEV add-on that runs [OpenCode](https://github.com/opencode-ai/opencode) in a
 >
 > Created by [Robert Menetray](https://menetray.com) · Sponsored by [DruScan](https://druscan.com)
 
-Agents, rules, and skills for Drupal development are automatically synced from [drupal-ai-agents](https://github.com/trebormc/drupal-ai-agents) via [ddev-agents-sync](https://github.com/trebormc/ddev-agents-sync) -- no manual git clone needed.
+Agents, rules, and skills for Drupal development are automatically synced from [drupal-ai-agents](https://github.com/trebormc/drupal-ai-agents) via [ddev-agents-sync](https://github.com/trebormc/ddev-agents-sync). No manual git clone needed.
 
 ## Quick Start
 
@@ -31,9 +31,9 @@ ddev opencode  # or: ddev oc
 ```
 
 This automatically installs the required dependencies:
-- [ddev-agents-sync](https://github.com/trebormc/ddev-agents-sync) -- auto-syncs AI agents from git
-- [ddev-beads](https://github.com/trebormc/ddev-beads) -- task tracking
-- [ddev-playwright-mcp](https://github.com/trebormc/ddev-playwright-mcp) -- browser automation
+- [ddev-agents-sync](https://github.com/trebormc/ddev-agents-sync): auto-syncs AI agents from git
+- [ddev-beads](https://github.com/trebormc/ddev-beads): task tracking
+- [ddev-playwright-mcp](https://github.com/trebormc/ddev-playwright-mcp): browser automation
 
 ## Prerequisites
 
@@ -42,9 +42,9 @@ This automatically installs the required dependencies:
 
 ## Authentication
 
-Run `ddev opencode` and follow the prompts. OpenCode handles authentication natively -- no custom commands or manual file editing needed.
+Run `ddev opencode` and follow the prompts. OpenCode handles authentication natively. No custom commands or manual file editing needed.
 
-Credentials are stored in a shared file on the host (`~/.ddev/opencode/auth.json` by default), so you only need to authenticate **once** -- all your DDEV projects share the same credentials automatically.
+Credentials are stored in a shared file on the host (`~/.ddev/opencode/auth.json` by default), so you only need to authenticate **once**. All your DDEV projects share the same credentials automatically.
 
 ## Configuration
 
@@ -125,7 +125,7 @@ OpenCode communicates with the web container via `docker exec` (through the moun
 
 When working on multiple DDEV projects at the same time, it can be hard to tell which terminal belongs to which project. The `tui` subcommand sets the terminal tab title to **`project-name - custom text`**, so you can identify each terminal at a glance.
 
-The project name (`DDEV_SITENAME`) is always included automatically. If you add extra text after `tui`, it appears as a label -- useful for describing the task you are working on in that terminal.
+The project name (`DDEV_SITENAME`) is always included automatically. If you add extra text after `tui`, it appears as a label. Useful for describing the task you are working on in that terminal.
 
 ```bash
 # Tab title: "mysite - OpenCode"
@@ -157,7 +157,7 @@ Inside the container (via `ddev opencode shell`), these helper functions are ava
 
 ## Desktop Notifications (optional)
 
-OpenCode can send desktop notifications when tasks complete or need attention. Notifications are pre-configured via `opencode-notifier.json` (ships with [drupal-ai-agents](https://github.com/trebormc/drupal-ai-agents)) -- no setup needed inside the container.
+OpenCode can send desktop notifications when tasks complete or need attention. Notifications are pre-configured via `opencode-notifier.json` (ships with [drupal-ai-agents](https://github.com/trebormc/drupal-ai-agents)). No setup needed inside the container.
 
 To receive notifications, install the [ai-notify-bridge](https://github.com/trebormc/ai-notify-bridge) on your host (one-time setup):
 
@@ -165,7 +165,7 @@ To receive notifications, install the [ai-notify-bridge](https://github.com/treb
 curl -fsSL https://raw.githubusercontent.com/trebormc/ai-notify-bridge/main/install.sh | bash
 ```
 
-If the bridge is not installed or not running, OpenCode works normally -- notification calls fail silently with no impact.
+If the bridge is not installed or not running, OpenCode works normally. Notification calls fail silently with no impact.
 
 ## Autonomous Execution
 
@@ -194,7 +194,7 @@ This add-on is part of [DDEV AI Workspace](https://github.com/trebormc/ddev-ai-w
 
 ## Disclaimer
 
-This project is an independent initiative by [Robert Menetray](https://menetray.com), sponsored by [DruScan](https://druscan.com). It is not affiliated with Anthropic, OpenCode, Beads, Playwright, Microsoft, or DDEV. AI-generated code may contain errors -- always review changes before deploying to production.
+This project is an independent initiative by [Robert Menetray](https://menetray.com), sponsored by [DruScan](https://druscan.com). It is not affiliated with Anthropic, OpenCode, Beads, Playwright, Microsoft, or DDEV. AI-generated code may contain errors. Always review changes before deploying to production.
 
 ## License
 
