@@ -50,8 +50,8 @@ RUN existing_user=$(getent passwd ${USER_UID} | cut -d: -f1) \
     && chmod 0440 /etc/sudoers.d/${USERNAME} \
     && passwd -d ${USERNAME}
 
-# Install bd wrapper — delegates to Beads container via SSH
-RUN printf '#!/bin/bash\nexec ssh beads bd "$@"\n' > /usr/local/bin/bd \
+# Install bd wrapper — delegates to Beads container via SSH (with proper quoting)
+RUN printf '#!/bin/bash\ncmd="bd"\nfor arg in "$@"; do\n  cmd="$cmd $(printf '\''%%q'\'' \"$arg\")"\ndone\nexec ssh beads "$cmd"\n' > /usr/local/bin/bd \
     && chmod +x /usr/local/bin/bd
 
 # Configure sshd for Ralph access (hardened)
@@ -101,12 +101,15 @@ RUN npm install -g opencode-ai@latest
 RUN echo 'export PATH="${HOME}/.npm-global/bin:${HOME}/go/bin:$PATH"' >> ~/.bashrc \
     && echo 'alias ll="ls -la"' >> ~/.bashrc \
     && echo '' >> ~/.bashrc \
+    && echo '# Safe SSH command wrapper — preserves quoting across SSH' >> ~/.bashrc \
+    && echo 'ssh-cmd() { local host="$1"; shift; local cmd=""; for arg in "$@"; do cmd="${cmd:+$cmd }$(printf "%q" "$arg")"; done; ssh "$host" "$cmd"; }' >> ~/.bashrc \
+    && echo '' >> ~/.bashrc \
     && echo '# Helper functions to execute in web container via SSH' >> ~/.bashrc \
-    && echo 'web-exec() { ssh web "$@"; }' >> ~/.bashrc \
-    && echo 'drush() { ssh web ./vendor/bin/drush "$@"; }' >> ~/.bashrc \
-    && echo 'composer() { ssh web composer "$@"; }' >> ~/.bashrc \
-    && echo 'phpunit() { ssh web ./vendor/bin/phpunit "$@"; }' >> ~/.bashrc \
-    && echo 'phpstan() { ssh web ./vendor/bin/phpstan "$@"; }' >> ~/.bashrc \
+    && echo 'web-exec() { ssh-cmd web "$@"; }' >> ~/.bashrc \
+    && echo 'drush() { ssh-cmd web ./vendor/bin/drush "$@"; }' >> ~/.bashrc \
+    && echo 'composer() { ssh-cmd web composer "$@"; }' >> ~/.bashrc \
+    && echo 'phpunit() { ssh-cmd web ./vendor/bin/phpunit "$@"; }' >> ~/.bashrc \
+    && echo 'phpstan() { ssh-cmd web ./vendor/bin/phpstan "$@"; }' >> ~/.bashrc \
     && echo 'web-shell() { ssh -t web bash; }' >> ~/.bashrc \
     && echo '' >> ~/.bashrc \
     && echo 'echo "OpenCode container ready"' >> ~/.bashrc \
