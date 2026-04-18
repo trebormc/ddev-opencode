@@ -51,7 +51,7 @@ RUN existing_user=$(getent passwd ${USER_UID} | cut -d: -f1) \
     && passwd -d ${USERNAME}
 
 # Install bd wrapper — delegates to Beads container via SSH (with proper quoting)
-RUN printf '#!/bin/bash\ncmd="bd"\nfor arg in "$@"; do\n  cmd="$cmd $(printf '\''%%q'\'' \"$arg\")"\ndone\nexec ssh beads "$cmd"\n' > /usr/local/bin/bd \
+RUN printf '#!/bin/bash\ncmd="bd"\nfor arg in "$@"; do\n  cmd="$cmd $(printf '\''%%q'\'' "$arg")"\ndone\nexec ssh beads "$cmd"\n' > /usr/local/bin/bd \
     && chmod +x /usr/local/bin/bd
 
 # Configure sshd for Ralph access (hardened)
