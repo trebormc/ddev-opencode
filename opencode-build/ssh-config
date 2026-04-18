@@ -1,0 +1,20 @@
+# SSH client configuration for AI agent inter-container access
+# Connects to web (drush, composer, phpunit) and beads (bd task tracking)
+
+Host web
+    HostName web
+    User ddev
+    IdentityFile ~/.ssh/ddev_agent_key
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    ServerAliveInterval 30
+    ServerAliveCountMax 3
+    RequestTTY no
+
+Host beads
+    HostName beads
+    User beads
+    IdentityFile ~/.ssh/ddev_agent_key
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    RequestTTY no

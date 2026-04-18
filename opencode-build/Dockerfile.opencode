@@ -1,6 +1,6 @@
 #ddev-generated
 # OpenCode AI container for DDEV
-# Ubuntu 24.04 + Node.js 22 + OpenCode + Docker CLI
+# Ubuntu 24.04 + Node.js 22 + OpenCode + SSH client/server
 
 FROM ubuntu:24.04
 
@@ -12,7 +12,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV USERNAME=${USERNAME}
 ENV USER_HOME=/home/${USERNAME}
 
-# Install base dependencies
+# Install base dependencies (SSH instead of Docker CLI)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     wget \
@@ -25,7 +25,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     jq \
     vim \
     less \
-    docker.io \
+    openssh-client \
+    openssh-server \
+    && mkdir -p /var/run/sshd \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js 22 (required by OpenCode)
@@ -47,9 +49,33 @@ RUN existing_user=$(getent passwd ${USER_UID} | cut -d: -f1) \
     && echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/${USERNAME} \
     && chmod 0440 /etc/sudoers.d/${USERNAME}
 
-# Install bd wrapper — delegates to Beads container via docker exec
-RUN printf '#!/bin/bash\nexec docker exec -i "$BEADS_CONTAINER" bd "$@"\n' > /usr/local/bin/bd \
+# Install bd wrapper — delegates to Beads container via SSH
+RUN printf '#!/bin/bash\nexec ssh beads bd "$@"\n' > /usr/local/bin/bd \
     && chmod +x /usr/local/bin/bd
+
+# Configure sshd for Ralph access (hardened)
+RUN mkdir -p /etc/ssh/sshd_config.d && \
+    printf '#!/bin/bash\n. /etc/ddev-env 2>/dev/null\ncd /var/www/html\nif [ -n "$SSH_ORIGINAL_COMMAND" ]; then\n    eval "$SSH_ORIGINAL_COMMAND"\nelse\n    exec bash -l\nfi\n' \
+    > /usr/local/bin/ai-ssh-command.sh && chmod +x /usr/local/bin/ai-ssh-command.sh
+
+RUN printf '%s\n' \
+    'PermitRootLogin no' \
+    'PasswordAuthentication no' \
+    'PubkeyAuthentication yes' \
+    'UsePAM no' \
+    "AllowUsers ${USERNAME}" \
+    'AllowTcpForwarding no' \
+    'X11Forwarding no' \
+    '' \
+    "Match User ${USERNAME}" \
+    '    ForceCommand /usr/local/bin/ai-ssh-command.sh' \
+    > /etc/ssh/sshd_config.d/ai-agent.conf
+
+# Set up SSH client config
+RUN mkdir -p ${USER_HOME}/.ssh && chmod 700 ${USER_HOME}/.ssh
+COPY opencode-build/ssh-config ${USER_HOME}/.ssh/config
+RUN chmod 600 ${USER_HOME}/.ssh/config \
+    && chown -R ${USER_UID}:${USER_GID} ${USER_HOME}/.ssh
 
 # Create required directories
 RUN mkdir -p ${USER_HOME}/.config/opencode \
@@ -74,16 +100,15 @@ RUN npm install -g opencode-ai@latest
 RUN echo 'export PATH="${HOME}/.npm-global/bin:${HOME}/go/bin:$PATH"' >> ~/.bashrc \
     && echo 'alias ll="ls -la"' >> ~/.bashrc \
     && echo '' >> ~/.bashrc \
-    && echo '# Helper function to execute in web container (detects TTY)' >> ~/.bashrc \
-    && echo 'web-exec() { if [ -t 0 ]; then docker exec -it "$WEB_CONTAINER" "$@"; else docker exec -i "$WEB_CONTAINER" "$@"; fi; }' >> ~/.bashrc \
-    && echo 'drush() { web-exec ./vendor/bin/drush "$@"; }' >> ~/.bashrc \
-    && echo 'composer() { web-exec composer "$@"; }' >> ~/.bashrc \
-    && echo 'phpunit() { web-exec ./vendor/bin/phpunit "$@"; }' >> ~/.bashrc \
-    && echo 'phpstan() { web-exec ./vendor/bin/phpstan "$@"; }' >> ~/.bashrc \
-    && echo 'web-shell() { docker exec -it "$WEB_CONTAINER" bash; }' >> ~/.bashrc \
+    && echo '# Helper functions to execute in web container via SSH' >> ~/.bashrc \
+    && echo 'web-exec() { ssh web "$@"; }' >> ~/.bashrc \
+    && echo 'drush() { ssh web ./vendor/bin/drush "$@"; }' >> ~/.bashrc \
+    && echo 'composer() { ssh web composer "$@"; }' >> ~/.bashrc \
+    && echo 'phpunit() { ssh web ./vendor/bin/phpunit "$@"; }' >> ~/.bashrc \
+    && echo 'phpstan() { ssh web ./vendor/bin/phpstan "$@"; }' >> ~/.bashrc \
+    && echo 'web-shell() { ssh -t web bash; }' >> ~/.bashrc \
     && echo '' >> ~/.bashrc \
     && echo 'echo "OpenCode container ready"' >> ~/.bashrc \
-    && echo 'echo "   Web container: \$WEB_CONTAINER"' >> ~/.bashrc \
     && echo 'echo "   Site URL: \$DDEV_PRIMARY_URL"' >> ~/.bashrc \
     && echo 'echo ""' >> ~/.bashrc \
     && echo 'echo "Commands: opencode | drush | phpunit | phpstan | web-shell | bd"' >> ~/.bashrc \

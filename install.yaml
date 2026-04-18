@@ -3,6 +3,7 @@ name: ddev-opencode
 ddev_version_constraint: '>= v1.24.10'
 
 dependencies:
+  - trebormc/ddev-ai-ssh
   - trebormc/ddev-playwright-mcp
   - trebormc/ddev-beads
   - trebormc/ddev-agents-sync
@@ -27,6 +28,7 @@ project_files:
   - docker-compose.opencode.yaml
   - opencode-build/Dockerfile.opencode
   - opencode-build/entrypoint.sh
+  - opencode-build/ssh-config
   - commands/host/opencode
   - commands/host/oc
 
@@ -108,7 +110,7 @@ post_install_actions:
       },
       "formatter": {
         "phpcbf": {
-          "command": ["docker", "exec", "$WEB_CONTAINER", "./vendor/bin/phpcbf", "--standard=Drupal,DrupalPractice", "$FILE"],
+          "command": ["ssh", "web", "./vendor/bin/phpcbf", "--standard=Drupal,DrupalPractice", "$FILE"],
           "extensions": [".php", ".module", ".inc", ".install", ".theme", ".profile"]
         }
       },

@@ -56,7 +56,6 @@ services:
       - ${HOST_OPENCODE_DIR}/config/opencode-notifier.json:/home/opencode/.config/opencode/opencode-notifier.json
       # Plugin node_modules (persistent across restarts)
       - ${HOST_OPENCODE_DIR}/config/node_modules:/home/opencode/.config/opencode/node_modules
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - ddev-global-cache:/mnt/ddev-global-cache
 
     environment:
