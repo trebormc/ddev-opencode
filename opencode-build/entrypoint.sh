@@ -29,6 +29,12 @@ mkdir -p ~/.ssh && chmod 700 ~/.ssh
 cp "$SSH_KEY_DIR/id_ed25519" ~/.ssh/ddev_agent_key 2>/dev/null
 chmod 600 ~/.ssh/ddev_agent_key 2>/dev/null
 
+# Detect web container username (DDEV maps host user, name varies)
+WEB_USER=$(stat -c '%U' /var/www/html/.ddev/.agent-ssh-keys/id_ed25519 2>/dev/null || echo "ddev")
+if ! grep -q "^    User " ~/.ssh/config 2>/dev/null; then
+  sed -i "/^Host web$/a\\    User $WEB_USER" ~/.ssh/config 2>/dev/null
+fi
+
 # SSH server: authorized_keys for Ralph to connect to this container
 cp "$SSH_KEY_DIR/id_ed25519.pub" ~/.ssh/authorized_keys 2>/dev/null
 chmod 600 ~/.ssh/authorized_keys 2>/dev/null

@@ -1,9 +1,9 @@
 # SSH client configuration for AI agent inter-container access
-# Connects to web (drush, composer, phpunit) and beads (bd task tracking)
+# The User for each host is set dynamically in the entrypoint
+# because DDEV maps the host user into containers with varying usernames
 
 Host web
     HostName web
-    User ddev
     IdentityFile ~/.ssh/ddev_agent_key
     StrictHostKeyChecking no
     UserKnownHostsFile /dev/null
