@@ -31,7 +31,7 @@ chmod 600 ~/.ssh/ddev_agent_key 2>/dev/null
 
 # Detect web container username (DDEV maps host user, name varies)
 WEB_USER=$(stat -c '%U' /var/www/html/.ddev/.agent-ssh-keys/id_ed25519 2>/dev/null || echo "ddev")
-if ! grep -q "^    User " ~/.ssh/config 2>/dev/null; then
+if ! sed -n '/^Host web$/,/^Host /p' ~/.ssh/config 2>/dev/null | grep -q "^    User "; then
   sed -i "/^Host web$/a\\    User $WEB_USER" ~/.ssh/config 2>/dev/null
 fi
 
