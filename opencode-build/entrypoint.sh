@@ -29,8 +29,13 @@ mkdir -p ~/.ssh && chmod 700 ~/.ssh
 cp "$SSH_KEY_DIR/id_ed25519" ~/.ssh/ddev_agent_key 2>/dev/null
 chmod 600 ~/.ssh/ddev_agent_key 2>/dev/null
 
-# Detect web container username (DDEV maps host user, name varies)
-WEB_USER=$(stat -c '%U' /var/www/html/.ddev/.agent-ssh-keys/id_ed25519 2>/dev/null || echo "ddev")
+# Detect web container username (written by ai-ssh-setup.sh in the web container)
+# Wait for the web container to write its username (max 15s)
+for i in $(seq 1 15); do
+  [ -f /var/www/html/.ddev/.agent-ssh-keys/web-user ] && break
+  sleep 1
+done
+WEB_USER=$(cat /var/www/html/.ddev/.agent-ssh-keys/web-user 2>/dev/null || echo "ddev")
 if ! sed -n '/^Host web$/,/^Host /p' ~/.ssh/config 2>/dev/null | grep -q "^    User "; then
   sed -i "/^Host web$/a\\    User $WEB_USER" ~/.ssh/config 2>/dev/null
 fi
