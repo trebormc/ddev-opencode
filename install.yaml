@@ -21,8 +21,15 @@ pre_install_actions:
       cp "$OC_DIR/auth/auth.json" "$OC_DIR/auth.json"
       echo "Migrated credentials from auth/ directory to auth.json"
     fi
-    # Create empty auth.json if it doesn't exist
-    [ -f "$OC_DIR/auth.json" ] || touch "$OC_DIR/auth.json"
+    # If a previous failed bind-mount created auth.json as a directory, remove it
+    if [ -d "$OC_DIR/auth.json" ]; then
+      rmdir "$OC_DIR/auth.json" 2>/dev/null || rm -rf "$OC_DIR/auth.json"
+      echo "Removed invalid auth.json directory (was created by a previous failed bind-mount)"
+    fi
+    # Create valid empty JSON auth.json if missing or empty (OpenCode parses it as JSON)
+    if [ ! -s "$OC_DIR/auth.json" ]; then
+      printf '{}\n' > "$OC_DIR/auth.json"
+    fi
 
 project_files:
   - docker-compose.opencode.yaml
