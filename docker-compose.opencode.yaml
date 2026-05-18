@@ -56,6 +56,11 @@ services:
       - ${HOST_OPENCODE_DIR}/config/opencode-notifier.json:/home/opencode/.config/opencode/opencode-notifier.json
       # Plugin node_modules (persistent across restarts)
       - ${HOST_OPENCODE_DIR}/config/node_modules:/home/opencode/.config/opencode/node_modules
+      # Multica daemon: env file from the shared ~/.ddev/multica/ directory.
+      # Same file is mounted by every Multica-aware DDEV addon.
+      # Empty MULTICA_TOKEN means disabled — entrypoint checks before acting.
+      - ${HOME}/.ddev/multica/.env.multica:/home/opencode/.env.multica:ro
+      - ${HOME}/.ddev/multica/.env.multica.example:/home/opencode/.env.multica.example:ro
       - ddev-global-cache:/mnt/ddev-global-cache
 
     environment:

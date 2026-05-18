@@ -58,4 +58,49 @@ if [ ! -d "$HOME/.config/opencode/node_modules/@mohak34/opencode-notifier" ]; th
   cd /var/www/html
 fi
 
+# --- 4. Multica daemon (optional) ---
+# Activated only if /home/opencode/.env.multica has a non-empty MULTICA_TOKEN.
+# The env file is mounted from the shared ~/.ddev/multica/ directory on the
+# host, so one configuration enables the daemon in every Multica-aware addon.
+# Watch list is managed automatically (`multica login` subscribes the daemon
+# to all UI workspaces) — the user controls it from the Multica panel.
+MULTICA_ENV_FILE="$HOME/.env.multica"
+if [ -s "$MULTICA_ENV_FILE" ] && command -v multica >/dev/null 2>&1; then
+  set -a
+  # shellcheck disable=SC1090
+  . "$MULTICA_ENV_FILE"
+  set +a
+
+  if [ -z "${MULTICA_TOKEN:-}" ]; then
+    echo "[multica] $MULTICA_ENV_FILE has no MULTICA_TOKEN — daemon disabled."
+  elif [ -z "${MULTICA_SERVER_URL:-}" ] || [ -z "${MULTICA_APP_URL:-}" ]; then
+    echo "[multica] MULTICA_SERVER_URL or MULTICA_APP_URL missing — daemon disabled."
+  else
+    # Identity for this runtime in the Multica UI (always tied to the DDEV
+    # project name so the user can tell runtimes apart at a glance).
+    export MULTICA_DAEMON_DEVICE_NAME="ddev-${DDEV_SITENAME}-opencode"
+    export MULTICA_AGENT_RUNTIME_NAME="OpenCode DDEV (${DDEV_SITENAME})"
+
+    echo "[multica] starting daemon as '$MULTICA_AGENT_RUNTIME_NAME'..."
+    multica config set server_url "$MULTICA_SERVER_URL" >/dev/null 2>&1 || true
+    multica config set app_url    "$MULTICA_APP_URL"    >/dev/null 2>&1 || true
+
+    # Non-interactive login. `--token=` (empty) reads from stdin so the
+    # token never lands in shell history; fall back to flag form if the
+    # CLI version doesn't support the stdin shortcut.
+    printf '%s\n' "$MULTICA_TOKEN" | multica login --token= >/dev/null 2>&1 || \
+      multica login --token="$MULTICA_TOKEN" >/dev/null 2>&1 || \
+      echo "[multica] login failed — check token validity."
+
+    multica daemon stop >/dev/null 2>&1 || true
+    if multica daemon start >/dev/null 2>&1; then
+      echo "[multica] daemon running (logs: $HOME/.multica/daemon.log)"
+    else
+      echo "[multica] WARNING: daemon failed to start — see $HOME/.multica/daemon.log"
+    fi
+  fi
+elif [ ! -s "$MULTICA_ENV_FILE" ]; then
+  echo "[multica] disabled (no $MULTICA_ENV_FILE or file is empty)."
+fi
+
 exec "$@"

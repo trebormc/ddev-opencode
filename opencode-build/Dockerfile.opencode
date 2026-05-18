@@ -78,6 +78,13 @@ COPY opencode-build/ssh-config ${USER_HOME}/.ssh/config
 RUN chmod 600 ${USER_HOME}/.ssh/config \
     && chown -R ${USER_UID}:${USER_GID} ${USER_HOME}/.ssh
 
+# Install Multica CLI (optional daemon — activated only if ~/.env.multica
+# has MULTICA_TOKEN at container start; otherwise the binary is unused).
+# Lands at /usr/local/bin/multica.
+RUN curl -fsSL https://raw.githubusercontent.com/multica-ai/multica/main/scripts/install.sh \
+      | bash \
+    && multica --version
+
 # Create required directories
 RUN mkdir -p ${USER_HOME}/.config/opencode \
     && mkdir -p ${USER_HOME}/.local/share/opencode \

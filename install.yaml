@@ -38,6 +38,7 @@ project_files:
   - opencode-build/ssh-config
   - commands/host/opencode
   - commands/host/oc
+  - .env.multica.example
 
 global_files: []
 
@@ -173,6 +174,31 @@ post_install_actions:
       echo "Created opencode-notifier.json in $OC_CONFIG"
     fi
     echo "OpenCode add-on installed successfully!"
+  - |
+    #ddev-description:Preparing Multica integration (optional, shared across AI addons)
+    # Multica config lives in ~/.ddev/multica/ — a neutral directory shared
+    # by every Multica-aware DDEV addon (this one, ddev-claude-code, etc.) so
+    # one configuration enables the daemon in all of them.
+    MULTICA_DIR="${HOME}/.ddev/multica"
+    mkdir -p "$MULTICA_DIR"
+    # Always refresh the template (this is just the example, never user data).
+    if [ -f .env.multica.example ]; then
+      cp .env.multica.example "$MULTICA_DIR/.env.multica.example"
+    fi
+    # Create empty .env.multica only if missing. Docker needs the file to
+    # exist before mounting; otherwise it would create a directory.
+    # Don't overwrite — another Multica-aware addon may have created it first
+    # and the user may have already added their token.
+    MULTICA_ENV="$MULTICA_DIR/.env.multica"
+    if [ ! -f "$MULTICA_ENV" ]; then
+      : > "$MULTICA_ENV"
+    fi
+    if grep -q '^[[:space:]]*MULTICA_TOKEN=[^[:space:]]\+' "$MULTICA_ENV" 2>/dev/null; then
+      echo "Multica: token detected in $MULTICA_ENV — daemon will start on next ddev restart."
+    else
+      echo "Multica: $MULTICA_ENV has no MULTICA_TOKEN — daemon disabled."
+      echo "         Copy $MULTICA_DIR/.env.multica.example over it and fill in the values to enable."
+    fi
 
 removal_actions:
   - |
