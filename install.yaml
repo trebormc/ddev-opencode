@@ -192,11 +192,16 @@ post_install_actions:
     if [ ! -f "$MULTICA_ENV" ]; then
       : > "$MULTICA_ENV"
     fi
-    if grep -q '^[[:space:]]*MULTICA_TOKEN=[^[:space:]]\+' "$MULTICA_ENV" 2>/dev/null; then
-      echo "Multica: token detected in $MULTICA_ENV — daemon will start on next ddev restart."
+    # Detect per-project override (.ddev/.env.multica) — takes precedence over global.
+    PROJECT_MULTICA_ENV=".env.multica"
+    if [ -s "$PROJECT_MULTICA_ENV" ] && grep -q '^[[:space:]]*MULTICA_TOKEN=[^[:space:]]\+' "$PROJECT_MULTICA_ENV" 2>/dev/null; then
+      echo "Multica: per-project token detected in .ddev/.env.multica — daemon will use project config."
+    elif grep -q '^[[:space:]]*MULTICA_TOKEN=[^[:space:]]\+' "$MULTICA_ENV" 2>/dev/null; then
+      echo "Multica: global token detected in $MULTICA_ENV — daemon will start on next ddev restart."
     else
-      echo "Multica: $MULTICA_ENV has no MULTICA_TOKEN — daemon disabled."
-      echo "         Copy $MULTICA_DIR/.env.multica.example over it and fill in the values to enable."
+      echo "Multica: no MULTICA_TOKEN configured — daemon disabled."
+      echo "         Global  : cp $MULTICA_DIR/.env.multica.example $MULTICA_ENV  (shared by all projects)"
+      echo "         Per-proj: cp .ddev/.env.multica.example .ddev/.env.multica   (this project only, overrides global)"
     fi
 
 removal_actions:

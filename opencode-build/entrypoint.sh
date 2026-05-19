@@ -59,13 +59,27 @@ if [ ! -d "$HOME/.config/opencode/node_modules/@mohak34/opencode-notifier" ]; th
 fi
 
 # --- 4. Multica daemon (optional) ---
-# Activated only if /home/opencode/.env.multica has a non-empty MULTICA_TOKEN.
-# The env file is mounted from the shared ~/.ddev/multica/ directory on the
-# host, so one configuration enables the daemon in every Multica-aware addon.
+# Activated only if a Multica env file with non-empty MULTICA_TOKEN is found.
+# Resolution order (first match wins):
+#   1. /var/www/html/.ddev/.env.multica   — per-project override
+#   2. $HOME/.env.multica                  — global (~/.ddev/multica/.env.multica on host)
+# The global file is mounted from the shared ~/.ddev/multica/ directory so
+# one configuration enables the daemon in every Multica-aware addon.
 # Watch list is managed automatically (`multica login` subscribes the daemon
 # to all UI workspaces) — the user controls it from the Multica panel.
-MULTICA_ENV_FILE="$HOME/.env.multica"
-if [ -s "$MULTICA_ENV_FILE" ] && command -v multica >/dev/null 2>&1; then
+PROJECT_MULTICA_ENV_FILE="/var/www/html/.ddev/.env.multica"
+GLOBAL_MULTICA_ENV_FILE="$HOME/.env.multica"
+if [ -s "$PROJECT_MULTICA_ENV_FILE" ]; then
+  MULTICA_ENV_FILE="$PROJECT_MULTICA_ENV_FILE"
+  MULTICA_ENV_SOURCE="per-project (.ddev/.env.multica)"
+elif [ -s "$GLOBAL_MULTICA_ENV_FILE" ]; then
+  MULTICA_ENV_FILE="$GLOBAL_MULTICA_ENV_FILE"
+  MULTICA_ENV_SOURCE="global (~/.ddev/multica/.env.multica)"
+else
+  MULTICA_ENV_FILE=""
+fi
+if [ -n "$MULTICA_ENV_FILE" ] && command -v multica >/dev/null 2>&1; then
+  echo "[multica] config source: $MULTICA_ENV_SOURCE"
   set -a
   # shellcheck disable=SC1090
   . "$MULTICA_ENV_FILE"
@@ -99,8 +113,8 @@ if [ -s "$MULTICA_ENV_FILE" ] && command -v multica >/dev/null 2>&1; then
       echo "[multica] WARNING: daemon failed to start — see $HOME/.multica/daemon.log"
     fi
   fi
-elif [ ! -s "$MULTICA_ENV_FILE" ]; then
-  echo "[multica] disabled (no $MULTICA_ENV_FILE or file is empty)."
+else
+  echo "[multica] disabled (no per-project or global .env.multica with content)."
 fi
 
 exec "$@"
