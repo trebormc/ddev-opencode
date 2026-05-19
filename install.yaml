@@ -47,7 +47,6 @@ post_install_actions:
     #ddev-description:Configuring OpenCode environment
     if [ ! -f .env.opencode ]; then
       cat > .env.opencode << 'ENVEOF'
-    #ddev-generated
     # OpenCode environment configuration
 
     # Shared OpenCode directory for credentials and config.
