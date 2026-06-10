@@ -10,12 +10,15 @@ if [ -d "$HOME" ] && [ ! -w "$HOME" ]; then
   sudo chown -R "$(id -u):$(id -g)" "$HOME"
 fi
 
-# --- 1. Copy CLAUDE.md and config from agents-sync volume ---
+# --- 1. Copy AGENTS.md and config from agents-sync volume ---
+# OpenCode only auto-loads ~/.config/opencode/AGENTS.md as its global rules
+# file (it never reads CLAUDE.md from the config dir), so the orchestrator
+# must be installed under that name.
 AGENTS_DATA="/agents-data"
 if [ -d "$AGENTS_DATA" ]; then
   OC_CONFIG="$HOME/.config/opencode"
   mkdir -p "$OC_CONFIG"
-  [ -f "$AGENTS_DATA/CLAUDE.md" ] && cp "$AGENTS_DATA/CLAUDE.md" "$OC_CONFIG/CLAUDE.md"
+  [ -f "$AGENTS_DATA/CLAUDE.md" ] && cp "$AGENTS_DATA/CLAUDE.md" "$OC_CONFIG/AGENTS.md"
   for f in "$AGENTS_DATA"/*.json; do
     [ -f "$f" ] && cp "$f" "$OC_CONFIG/$(basename "$f")"
   done
