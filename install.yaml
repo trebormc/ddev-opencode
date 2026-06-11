@@ -36,6 +36,8 @@ project_files:
   - opencode-build/Dockerfile.opencode
   - opencode-build/entrypoint.sh
   - opencode-build/ssh-config
+  - opencode-build/opencode.default.json
+  - opencode-build/opencode-notifier.default.json
   - commands/host/opencode
   - commands/host/oc
   - .env.multica.example
@@ -52,7 +54,8 @@ post_install_actions:
     # Shared OpenCode directory for credentials and config.
     # This directory is shared across ALL DDEV projects so you only
     # need to configure once. Change only if you need a custom location.
-    # Files: auth.json (credentials), config/ (opencode.json, custom overrides)
+    # Files: auth.json (credentials), config/ (optional shared opencode.json,
+    # opencode-notifier.json, AGENTS.md overrides + node_modules plugin cache)
     HOST_OPENCODE_DIR=${HOME}/.ddev/opencode
 
     # Timezone
@@ -62,116 +65,13 @@ post_install_actions:
     else
       echo ".env.opencode already exists, skipping"
     fi
-    # Create default opencode.json if missing
-    OC_CONFIG="${HOST_OPENCODE_DIR:-${HOME}/.ddev/opencode}/config"
-    OC_JSON="$OC_CONFIG/opencode.json"
-    if [ ! -f "$OC_JSON" ] || [ -L "$OC_JSON" ]; then
-      rm -f "$OC_JSON"
-      cat > "$OC_JSON" << 'OCEOF'
-    {
-      "$schema": "https://opencode.ai/config.json",
-      "model": "anthropic/claude-opus-4-6",
-      "small_model": "anthropic/claude-haiku-4-5",
-      "autoupdate": true,
-      "instructions": [
-        "rules/beads-workflow.md",
-        "rules/drupal-coding-standards.md",
-        "rules/security-rules.md",
-        "rules/ddev-environment.md",
-        "rules/git-workflow.md",
-        "rules/quality-tools-setup.md",
-        "rules/lessons-learned.md"
-      ],
-      "permission": {
-        "edit": "allow",
-        "write": "allow",
-        "read": "allow",
-        "glob": "allow",
-        "grep": "allow",
-        "webfetch": "allow",
-        "skill": {
-          "*": "allow"
-        },
-        "bash": {
-          "rm -rf /": "deny",
-          "rm -rf /*": "deny",
-          "sudo *": "deny",
-          "tail *": "allow",
-          "git commit*": "deny",
-          "git push*": "deny",
-          "git pull*": "deny",
-          "git add*": "deny",
-          "git merge*": "deny",
-          "git rebase*": "deny",
-          "git checkout*": "deny",
-          "git reset*": "deny",
-          "git stash*": "deny",
-          "git tag*": "deny",
-          "git diff*": "allow",
-          "git log*": "allow",
-          "git status*": "allow",
-          "git branch*": "allow",
-          "git show*": "allow",
-          "*": "allow"
-        }
-      },
-      "formatter": {
-        "phpcbf": {
-          "command": ["ssh", "web", "./vendor/bin/phpcbf", "--standard=Drupal,DrupalPractice", "$FILE"],
-          "extensions": [".php", ".module", ".inc", ".install", ".theme", ".profile"]
-        }
-      },
-      "mcp": {
-        "playwright": {
-          "type": "remote",
-          "url": "http://playwright-mcp:8931/mcp",
-          "enabled": true,
-          "timeout": 30000
-        }
-      },
-      "plugin": ["@mohak34/opencode-notifier@latest"]
-    }
-    OCEOF
-      echo "Created opencode.json in $OC_CONFIG"
-    fi
-    # Create default opencode-notifier.json if missing
-    OC_CONFIG="${HOST_OPENCODE_DIR:-${HOME}/.ddev/opencode}/config"
-    NOTIFIER_FILE="$OC_CONFIG/opencode-notifier.json"
-    if [ ! -f "$NOTIFIER_FILE" ] || [ -L "$NOTIFIER_FILE" ]; then
-      rm -f "$NOTIFIER_FILE"
-      cat > "$NOTIFIER_FILE" << 'NOTIFIEREOF'
-    {
-      "sound": false,
-      "notification": false,
-      "timeout": 10,
-      "showProjectName": true,
-      "suppressWhenFocused": false,
-      "command": {
-        "enabled": true,
-        "path": "/bin/sh",
-        "args": [
-          "-c",
-          "curl -s --connect-timeout 1 -X POST http://host.docker.internal:5454/notify -H 'Content-Type: application/json' -d \"{\\\"title\\\":\\\"[$DDEV_SITENAME] ${DDEV_TUI_TITLE:-OpenCode}\\\",\\\"message\\\":\\\"{message}\\\"}\""
-        ],
-        "minDuration": 0
-      },
-      "events": {
-        "permission": true,
-        "complete": true,
-        "subagent_complete": false,
-        "error": true,
-        "question": true
-      },
-      "messages": {
-        "permission": "Needs your permission",
-        "complete": "Task completed",
-        "error": "Error detected",
-        "question": "Waiting for your response"
-      }
-    }
-    NOTIFIEREOF
-      echo "Created opencode-notifier.json in $OC_CONFIG"
-    fi
+    # NOTE: opencode.json and opencode-notifier.json are NOT seeded here.
+    # The entrypoint builds the container-global config by DEEP-MERGING a
+    # cascade (higher levels win key by key):
+    #   1. project root opencode.json        — merged on top natively by OpenCode
+    #   2. ~/.ddev/opencode/config/*.json    — user's config shared across all DDEV projects
+    #   3. agents volume (ddev-agents-sync)  — defaults synced from the agents repo
+    #   4. baked into the image              — basic defaults (works without agents-sync)
     echo "OpenCode add-on installed successfully!"
   - |
     #ddev-description:Preparing Multica integration (optional, shared across AI addons)

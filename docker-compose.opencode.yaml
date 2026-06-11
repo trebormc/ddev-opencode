@@ -53,10 +53,15 @@ services:
         read_only: true
       # Full agents volume (for CLAUDE.md and config copy in entrypoint)
       - agents-opencode-data:/agents-data:ro
-      # Shared credentials — only auth.json, not the full directory
+      # Shared credentials — only auth.json, not the full directory.
       - ${HOST_OPENCODE_DIR}/auth.json:/home/opencode/.local/share/opencode/auth.json
-      - ${HOST_OPENCODE_DIR}/config/opencode.json:/home/opencode/.config/opencode/opencode.json
-      - ${HOST_OPENCODE_DIR}/config/opencode-notifier.json:/home/opencode/.config/opencode/opencode-notifier.json
+      # Host shared config dir (read-only side mount). The entrypoint builds
+      # the container-global config by DEEP-MERGING this cascade (higher wins):
+      #   1. project root opencode.json     — merged on top natively by OpenCode
+      #   2. /host-opencode-config/*.json   — user's config shared across all DDEV projects
+      #   3. /agents-data/*.json            — synced defaults from the agents repo
+      #   4. /opt/opencode-defaults/*.json  — basic defaults baked into the image
+      - ${HOST_OPENCODE_DIR}/config:/host-opencode-config:ro
       # Plugin node_modules (persistent across restarts)
       - ${HOST_OPENCODE_DIR}/config/node_modules:/home/opencode/.config/opencode/node_modules
       # Multica daemon: env file from the shared ~/.ddev/multica/ directory.

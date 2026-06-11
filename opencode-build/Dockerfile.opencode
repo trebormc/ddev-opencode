@@ -125,6 +125,11 @@ RUN echo 'export PATH="${HOME}/.npm-global/bin:${HOME}/go/bin:$PATH"' >> ~/.bash
     && echo 'echo "Commands: opencode | drush | phpunit | phpstan | web-shell | bd"' >> ~/.bashrc \
     && echo '' >> ~/.bashrc
 
+# Baked-in basic configs — lowest-priority fallback so the container works
+# even without the agents-sync add-on (see entrypoint config cascade)
+COPY opencode-build/opencode.default.json /opt/opencode-defaults/opencode.json
+COPY opencode-build/opencode-notifier.default.json /opt/opencode-defaults/opencode-notifier.json
+
 # Copy entrypoint script (must be done before USER switch, or use sudo)
 COPY opencode-build/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN sudo chmod +x /usr/local/bin/entrypoint.sh
