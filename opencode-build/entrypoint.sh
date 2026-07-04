@@ -90,6 +90,19 @@ if [ ! -d "$HOME/.config/opencode/node_modules/@mohak34/opencode-notifier" ]; th
   cd /var/www/html
 fi
 
+# --- 3b. Trust the DDEV mkcert root CA ---
+# The Multica daemon's Go HTTPS/WSS client must verify *.ddev.site
+# certificates, otherwise `multica login` fails with x509 "certificate signed
+# by unknown authority" and no runtime ever registers. The CA is mounted at
+# runtime from the DDEV global cache (it does not exist at image build time),
+# and the container trust store is reset on every rebuild, so this must run on
+# each start — and BEFORE the Multica daemon authenticates below.
+DDEV_ROOT_CA="/mnt/ddev-global-cache/mkcert/rootCA.pem"
+if [ -f "$DDEV_ROOT_CA" ]; then
+  sudo cp "$DDEV_ROOT_CA" /usr/local/share/ca-certificates/ddev-rootCA.crt
+  sudo update-ca-certificates >/dev/null 2>&1 || true
+fi
+
 # --- 4. Multica daemon (optional) ---
 # Activated only if a Multica env file with non-empty MULTICA_TOKEN is found.
 # Resolution order (first match wins):
