@@ -35,6 +35,7 @@ project_files:
   - docker-compose.opencode.yaml
   - opencode-build/Dockerfile.opencode
   - opencode-build/entrypoint.sh
+  - opencode-build/opencode-usage-wrapper.sh
   - opencode-build/ssh-config
   - opencode-build/opencode.default.json
   - opencode-build/opencode-notifier.default.json

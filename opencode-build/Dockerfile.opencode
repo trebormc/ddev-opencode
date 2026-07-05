@@ -104,6 +104,15 @@ ENV PATH="${USER_HOME}/.npm-global/bin:${PATH}"
 # Install OpenCode globally
 RUN npm install -g opencode-ai@latest
 
+# Wrap the `opencode` binary so HUMAN sessions can forward token-usage telemetry
+# to Atlas (see opencode-usage-wrapper.sh). The real binary is kept at
+# `opencode-real`; the transparent wrapper takes its place on PATH. Daemon-run
+# invocations are detected inside the wrapper and left untouched. The OTEL
+# plugin itself is installed at start (entrypoint) alongside the notifier.
+RUN mv "${USER_HOME}/.npm-global/bin/opencode" "${USER_HOME}/.npm-global/bin/opencode-real"
+COPY --chown=${USER_UID}:${USER_GID} opencode-build/opencode-usage-wrapper.sh ${USER_HOME}/.npm-global/bin/opencode
+RUN chmod +x "${USER_HOME}/.npm-global/bin/opencode"
+
 # Create useful aliases and helper functions
 RUN echo 'export PATH="${HOME}/.npm-global/bin:${HOME}/go/bin:$PATH"' >> ~/.bashrc \
     && echo 'alias ll="ls -la"' >> ~/.bashrc \

@@ -83,13 +83,17 @@ env | grep -E '^(DDEV_|IS_DDEV_PROJECT|HOME=|PATH=|LANG|TZ=|PLAYWRIGHT_)' \
 sudo chmod 644 /etc/ddev-env
 sudo /usr/sbin/sshd 2>/dev/null || true
 
-# --- 3. Install notifier plugin if not already installed ---
-if [ ! -d "$HOME/.config/opencode/node_modules/@mohak34/opencode-notifier" ]; then
-  mkdir -p "$HOME/.config/opencode"
-  cd "$HOME/.config/opencode"
-  npm install --save @mohak34/opencode-notifier@latest 2>/dev/null || true
-  cd /var/www/html
-fi
+# --- 3. Install OpenCode plugins if not already installed ---
+# Notifier: desktop notifications. OTEL: token-usage telemetry for the human
+# forwarding feature (inert unless OPENCODE_ENABLE_TELEMETRY is set, which only
+# the CLI wrapper does — for human sessions). Both are also registered in the
+# `plugin` array of the merged opencode.json.
+for _oc_plugin in "@mohak34/opencode-notifier" "@devtheops/opencode-plugin-otel"; do
+  if [ ! -d "$HOME/.config/opencode/node_modules/$_oc_plugin" ]; then
+    mkdir -p "$HOME/.config/opencode"
+    (cd "$HOME/.config/opencode" && npm install --save "${_oc_plugin}@latest" 2>/dev/null) || true
+  fi
+done
 
 # --- 3b. Trust the DDEV mkcert root CA ---
 # The Multica daemon's Go HTTPS/WSS client must verify *.ddev.site
@@ -113,6 +117,12 @@ fi
 # one configuration enables the daemon in every Multica-aware addon.
 # Watch list is managed automatically (`multica login` subscribes the daemon
 # to all UI workspaces) — the user controls it from the Multica panel.
+#
+# The human token-usage forwarding config (see below) is regenerated on every
+# start; clear any stale copy first so a disabled or reconfigured container
+# never keeps forwarding from a previous run.
+rm -f "$HOME/.config/atlas/human-usage.env" 2>/dev/null || true
+
 PROJECT_MULTICA_ENV_FILE="/var/www/html/.ddev/.env.multica"
 GLOBAL_MULTICA_ENV_FILE="$HOME/.env.multica"
 if [ -s "$PROJECT_MULTICA_ENV_FILE" ]; then
@@ -157,6 +167,29 @@ if [ -n "$MULTICA_ENV_FILE" ] && command -v multica >/dev/null 2>&1; then
       echo "[multica] daemon running (logs: $HOME/.multica/daemon.log)"
     else
       echo "[multica] WARNING: daemon failed to start — see $HOME/.multica/daemon.log"
+    fi
+
+    # --- Human token-usage forwarding (Atlas extension — NOT part of Multica) ---
+    # When ATLAS_HUMAN_USAGE_TOKEN is set, HUMAN `opencode` sessions forward their
+    # OpenTelemetry token metrics to the Atlas usage endpoint, attributed to the
+    # SAME runtime this daemon registers (matched by device_name). The CLI
+    # wrapper excludes daemon-run tasks, so they are never double-counted. The
+    # config is consumed by opencode-usage-wrapper.sh; empty token -> feature off.
+    if [ -n "${ATLAS_HUMAN_USAGE_TOKEN:-}" ]; then
+      HUMAN_USAGE_ENDPOINT="${ATLAS_USAGE_ENDPOINT:-${MULTICA_APP_URL%/}/api/usage}"
+      HUMAN_USAGE_CONFIG="$HOME/.config/atlas/human-usage.env"
+      mkdir -p "$(dirname "$HUMAN_USAGE_CONFIG")"
+      # Create with 600 BEFORE writing the token (no world-readable window).
+      : > "$HUMAN_USAGE_CONFIG" && chmod 600 "$HUMAN_USAGE_CONFIG"
+      cat > "$HUMAN_USAGE_CONFIG" <<EOF
+ATLAS_HUMAN_USAGE_TOKEN=${ATLAS_HUMAN_USAGE_TOKEN}
+ATLAS_USAGE_ENDPOINT=${HUMAN_USAGE_ENDPOINT}
+MULTICA_DAEMON_DEVICE_NAME=${MULTICA_DAEMON_DEVICE_NAME}
+ATLAS_USAGE_INTERVAL=${ATLAS_USAGE_INTERVAL:-10000}
+EOF
+      echo "[atlas] human token-usage forwarding enabled -> ${HUMAN_USAGE_ENDPOINT%/}/v1/metrics"
+    else
+      echo "[atlas] human token-usage forwarding disabled (no ATLAS_HUMAN_USAGE_TOKEN)."
     fi
   fi
 else
