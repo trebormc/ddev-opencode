@@ -37,7 +37,8 @@ for name in opencode.json opencode-notifier.json; do
     fi
   done
   if [ "${#sources[@]}" -gt 0 ]; then
-    jq -s 'reduce .[] as $x ({}; . * $x)' "${sources[@]}" > "$OC_CONFIG/$name"
+    # del: strip the DDEV update-tracking signature key from the baked default
+    jq -s 'reduce .[] as $x ({}; . * $x) | del(."#ddev-generated")' "${sources[@]}" > "$OC_CONFIG/$name"
     echo "[opencode] $name <- merged: ${sources[*]}"
   fi
 done
