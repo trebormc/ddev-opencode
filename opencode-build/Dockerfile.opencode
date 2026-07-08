@@ -139,6 +139,11 @@ RUN echo 'export PATH="${HOME}/.npm-global/bin:${HOME}/go/bin:$PATH"' >> ~/.bash
 COPY opencode-build/opencode.default.json /opt/opencode-defaults/opencode.json
 COPY opencode-build/opencode-notifier.default.json /opt/opencode-defaults/opencode-notifier.json
 
+# Pristine copy of the usage wrapper — the entrypoint self-update reinstalls
+# OpenCode on start, which relinks the `opencode` bin and clobbers the wrapper;
+# the entrypoint restores it from this copy
+COPY opencode-build/opencode-usage-wrapper.sh /opt/opencode-defaults/opencode-usage-wrapper.sh
+
 # Copy entrypoint script (must be done before USER switch, or use sudo)
 COPY opencode-build/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN sudo chmod +x /usr/local/bin/entrypoint.sh

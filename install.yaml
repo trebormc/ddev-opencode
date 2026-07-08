@@ -59,6 +59,10 @@ post_install_actions:
     # opencode-notifier.json, AGENTS.md overrides + node_modules plugin cache)
     HOST_OPENCODE_DIR=${HOME}/.ddev/opencode
 
+    # Self-update OpenCode on every container start (set to false to keep
+    # the version baked into the image)
+    OPENCODE_AUTO_UPDATE=true
+
     # Timezone
     TZ=UTC
     ENVEOF

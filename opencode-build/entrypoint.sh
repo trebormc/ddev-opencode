@@ -10,6 +10,37 @@ if [ -d "$HOME" ] && [ ! -w "$HOME" ]; then
   sudo chown -R "$(id -u):$(id -g)" "$HOME"
 fi
 
+# --- 0b. Self-update OpenCode (best effort) ---
+# The image bakes whatever OpenCode version was latest at BUILD time, and
+# Docker layer caching freezes that layer across rebuilds — so restarts keep
+# serving a stale version. Refresh on every container start instead: a quick
+# registry check, and a reinstall only when a newer version exists. Offline or
+# npm failure keeps the baked version. Opt out with OPENCODE_AUTO_UPDATE=false
+# in .ddev/.env.opencode.
+if [ "${OPENCODE_AUTO_UPDATE:-true}" = "true" ]; then
+  OC_REAL="$HOME/.npm-global/bin/opencode-real"
+  OC_CURRENT=$("$OC_REAL" --version 2>/dev/null || echo "unknown")
+  OC_LATEST=$(timeout 20 npm view opencode-ai version 2>/dev/null || echo "")
+  if [ -n "$OC_LATEST" ] && ! printf '%s' "$OC_CURRENT" | grep -qF "$OC_LATEST"; then
+    echo "[opencode] updating OpenCode $OC_CURRENT -> $OC_LATEST ..."
+    if timeout 300 npm install -g "opencode-ai@$OC_LATEST" >/dev/null 2>&1; then
+      # npm relinks ~/.npm-global/bin/opencode to the real CLI, clobbering the
+      # usage wrapper — move the fresh binary to opencode-real and restore the
+      # wrapper (pristine copy baked at /opt/opencode-defaults/).
+      if ! head -c 512 "$HOME/.npm-global/bin/opencode" 2>/dev/null | grep -q 'ddev-generated'; then
+        mv -f "$HOME/.npm-global/bin/opencode" "$OC_REAL"
+        cp /opt/opencode-defaults/opencode-usage-wrapper.sh "$HOME/.npm-global/bin/opencode"
+        chmod +x "$HOME/.npm-global/bin/opencode"
+      fi
+      echo "[opencode] OpenCode updated to $("$OC_REAL" --version 2>/dev/null || echo unknown)"
+    else
+      echo "[opencode] WARNING: update failed — keeping $OC_CURRENT"
+    fi
+  else
+    echo "[opencode] OpenCode $OC_CURRENT is up to date (latest: ${OC_LATEST:-unreachable})"
+  fi
+fi
+
 # --- 1. Build the container-global OpenCode config ---
 # Config cascade — all levels are DEEP-MERGED, higher levels win key by key:
 #   1. /opt/opencode-defaults/  basic defaults baked into the image, so the

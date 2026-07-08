@@ -83,6 +83,9 @@ services:
       - PLAYWRIGHT_MCP_URL=http://playwright-mcp:8931/mcp
       - BEADS_CONTAINER=ddev-${DDEV_SITENAME}-beads
       - OPENCODE_DISABLE_TERMINAL_TITLE=1
+      # Self-update OpenCode on every container start (see entrypoint).
+      # Set OPENCODE_AUTO_UPDATE=false in .ddev/.env.opencode to opt out.
+      - OPENCODE_AUTO_UPDATE=${OPENCODE_AUTO_UPDATE:-true}
       - TZ=${TZ:-UTC}
 
     stdin_open: true
