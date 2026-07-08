@@ -10,6 +10,62 @@ if [ -d "$HOME" ] && [ ! -w "$HOME" ]; then
   sudo chown -R "$(id -u):$(id -g)" "$HOME"
 fi
 
+# --- 0a. Human token-usage forwarding config (Atlas extension — EARLY) ---
+# The human-usage config MUST be written before the first `opencode` invocation
+# by any user, which can happen while the entrypoint is still running (races
+# against the self-update, plugin installation, daemon startup, etc.). Source
+# the Multica env file early, write the config file, then continue; the daemon
+# section below (step 4) re-sources the same file for its own needs.
+# The config is regenerated on every start; clear any stale copy first so a
+# disabled or reconfigured container never keeps forwarding from a previous run.
+rm -f "$HOME/.config/atlas/human-usage.env" 2>/dev/null || true
+
+PROJECT_MULTICA_ENV_FILE="/var/www/html/.ddev/.env.multica"
+GLOBAL_MULTICA_ENV_FILE="$HOME/.env.multica"
+if [ -s "$PROJECT_MULTICA_ENV_FILE" ]; then
+  MULTICA_ENV_FILE="$PROJECT_MULTICA_ENV_FILE"
+  MULTICA_ENV_SOURCE="per-project (.ddev/.env.multica)"
+elif [ -s "$GLOBAL_MULTICA_ENV_FILE" ]; then
+  MULTICA_ENV_FILE="$GLOBAL_MULTICA_ENV_FILE"
+  MULTICA_ENV_SOURCE="global (~/.ddev/multica/.env.multica)"
+else
+  MULTICA_ENV_FILE=""
+fi
+
+# Subshell: the sourced Multica vars (tokens included) must NOT leak into the
+# environment of the self-update/plugin/SSH steps below — only step 4 needs
+# them, and it sources the file itself.
+if [ -n "$MULTICA_ENV_FILE" ]; then
+  (
+    set -a
+    # shellcheck disable=SC1090
+    . "$MULTICA_ENV_FILE"
+    set +a
+
+    if [ -n "${MULTICA_TOKEN:-}" ] && [ -n "${ATLAS_HUMAN_USAGE_TOKEN:-}" ]; then
+      if [ -n "${ATLAS_USAGE_ENDPOINT:-}${MULTICA_APP_URL:-}" ]; then
+        MULTICA_DAEMON_DEVICE_NAME="ddev-${DDEV_SITENAME}-opencode"
+        HUMAN_USAGE_ENDPOINT="${ATLAS_USAGE_ENDPOINT:-${MULTICA_APP_URL%/}/api/usage}"
+        HUMAN_USAGE_CONFIG="$HOME/.config/atlas/human-usage.env"
+        mkdir -p "$(dirname "$HUMAN_USAGE_CONFIG")"
+        # Create with 600 BEFORE writing the token (no world-readable window).
+        : > "$HUMAN_USAGE_CONFIG" && chmod 600 "$HUMAN_USAGE_CONFIG"
+        cat > "$HUMAN_USAGE_CONFIG" <<EOF
+ATLAS_HUMAN_USAGE_TOKEN=${ATLAS_HUMAN_USAGE_TOKEN}
+ATLAS_USAGE_ENDPOINT=${HUMAN_USAGE_ENDPOINT}
+MULTICA_DAEMON_DEVICE_NAME=${MULTICA_DAEMON_DEVICE_NAME}
+ATLAS_USAGE_INTERVAL=${ATLAS_USAGE_INTERVAL:-10000}
+EOF
+        echo "[atlas] human token-usage forwarding enabled (early) -> ${HUMAN_USAGE_ENDPOINT%/}/v1/metrics"
+      else
+        echo "[atlas] human token-usage forwarding disabled (set ATLAS_USAGE_ENDPOINT or MULTICA_APP_URL)."
+      fi
+    elif [ -n "${MULTICA_TOKEN:-}" ]; then
+      echo "[atlas] human token-usage forwarding disabled (no ATLAS_HUMAN_USAGE_TOKEN)."
+    fi
+  )
+fi
+
 # --- 0b. Self-update OpenCode (best effort) ---
 # The image bakes whatever OpenCode version was latest at BUILD time, and
 # Docker layer caching freezes that layer across rebuilds — so restarts keep
@@ -149,24 +205,12 @@ fi
 # Watch list is managed automatically (`multica login` subscribes the daemon
 # to all UI workspaces) — the user controls it from the Multica panel.
 #
-# The human token-usage forwarding config (see below) is regenerated on every
-# start; clear any stale copy first so a disabled or reconfigured container
-# never keeps forwarding from a previous run.
-rm -f "$HOME/.config/atlas/human-usage.env" 2>/dev/null || true
-
-PROJECT_MULTICA_ENV_FILE="/var/www/html/.ddev/.env.multica"
-GLOBAL_MULTICA_ENV_FILE="$HOME/.env.multica"
-if [ -s "$PROJECT_MULTICA_ENV_FILE" ]; then
-  MULTICA_ENV_FILE="$PROJECT_MULTICA_ENV_FILE"
-  MULTICA_ENV_SOURCE="per-project (.ddev/.env.multica)"
-elif [ -s "$GLOBAL_MULTICA_ENV_FILE" ]; then
-  MULTICA_ENV_FILE="$GLOBAL_MULTICA_ENV_FILE"
-  MULTICA_ENV_SOURCE="global (~/.ddev/multica/.env.multica)"
-else
-  MULTICA_ENV_FILE=""
-fi
+# NOTE: The human-usage forwarding config was already written above (step 0a).
+# This section only handles daemon startup — do NOT write the config again.
 if [ -n "$MULTICA_ENV_FILE" ] && command -v multica >/dev/null 2>&1; then
   echo "[multica] config source: $MULTICA_ENV_SOURCE"
+  # Step 0a sourced this file in a subshell only — the daemon needs the vars
+  # in THIS shell, so source it here.
   set -a
   # shellcheck disable=SC1090
   . "$MULTICA_ENV_FILE"
@@ -198,29 +242,6 @@ if [ -n "$MULTICA_ENV_FILE" ] && command -v multica >/dev/null 2>&1; then
       echo "[multica] daemon running (logs: $HOME/.multica/daemon.log)"
     else
       echo "[multica] WARNING: daemon failed to start — see $HOME/.multica/daemon.log"
-    fi
-
-    # --- Human token-usage forwarding (Atlas extension — NOT part of Multica) ---
-    # When ATLAS_HUMAN_USAGE_TOKEN is set, HUMAN `opencode` sessions forward their
-    # OpenTelemetry token metrics to the Atlas usage endpoint, attributed to the
-    # SAME runtime this daemon registers (matched by device_name). The CLI
-    # wrapper excludes daemon-run tasks, so they are never double-counted. The
-    # config is consumed by opencode-usage-wrapper.sh; empty token -> feature off.
-    if [ -n "${ATLAS_HUMAN_USAGE_TOKEN:-}" ]; then
-      HUMAN_USAGE_ENDPOINT="${ATLAS_USAGE_ENDPOINT:-${MULTICA_APP_URL%/}/api/usage}"
-      HUMAN_USAGE_CONFIG="$HOME/.config/atlas/human-usage.env"
-      mkdir -p "$(dirname "$HUMAN_USAGE_CONFIG")"
-      # Create with 600 BEFORE writing the token (no world-readable window).
-      : > "$HUMAN_USAGE_CONFIG" && chmod 600 "$HUMAN_USAGE_CONFIG"
-      cat > "$HUMAN_USAGE_CONFIG" <<EOF
-ATLAS_HUMAN_USAGE_TOKEN=${ATLAS_HUMAN_USAGE_TOKEN}
-ATLAS_USAGE_ENDPOINT=${HUMAN_USAGE_ENDPOINT}
-MULTICA_DAEMON_DEVICE_NAME=${MULTICA_DAEMON_DEVICE_NAME}
-ATLAS_USAGE_INTERVAL=${ATLAS_USAGE_INTERVAL:-10000}
-EOF
-      echo "[atlas] human token-usage forwarding enabled -> ${HUMAN_USAGE_ENDPOINT%/}/v1/metrics"
-    else
-      echo "[atlas] human token-usage forwarding disabled (no ATLAS_HUMAN_USAGE_TOKEN)."
     fi
   fi
 else
