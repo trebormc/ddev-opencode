@@ -1,7 +1,7 @@
 {
   "#ddev-generated": true,
   "$schema": "https://opencode.ai/config.json",
-  "autoupdate": true,
+  "autoupdate": false,
   "instructions": [
     "~/.config/opencode/rules/*.md"
   ],

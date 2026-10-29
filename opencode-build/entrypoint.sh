@@ -73,21 +73,29 @@ fi
 # registry check, and a reinstall only when a newer version exists. Offline or
 # npm failure keeps the baked version. Opt out with OPENCODE_AUTO_UPDATE=false
 # in .ddev/.env.opencode.
+# OpenCode 2 ships as the @opencode/cli npm package (opencode-ai is OpenCode 1
+# only). This is the ONLY update path: OpenCode's own updater is disabled
+# (OPENCODE_DISABLE_AUTOUPDATE in docker-compose + "autoupdate": false in the
+# config) because an in-app npm reinstall would clobber the usage wrapper.
 if [ "${OPENCODE_AUTO_UPDATE:-true}" = "true" ]; then
   OC_REAL="$HOME/.npm-global/bin/opencode-real"
-  OC_CURRENT=$("$OC_REAL" --version 2>/dev/null || echo "unknown")
-  OC_LATEST=$(timeout 20 npm view opencode-ai version 2>/dev/null || echo "")
-  if [ -n "$OC_LATEST" ] && ! printf '%s' "$OC_CURRENT" | grep -qF "$OC_LATEST"; then
+  # `opencode --version` prints "opencode v2.2.1" — keep the bare version.
+  OC_CURRENT=$("$OC_REAL" --version 2>/dev/null | sed -E 's/^opencode v//' || true)
+  OC_CURRENT=${OC_CURRENT:-unknown}
+  OC_LATEST=$(timeout 20 npm view @opencode/cli version 2>/dev/null || echo "")
+  if [ -n "$OC_LATEST" ] && [ "$OC_CURRENT" != "$OC_LATEST" ]; then
     echo "[opencode] updating OpenCode $OC_CURRENT -> $OC_LATEST ..."
-    if timeout 300 npm install -g "opencode-ai@$OC_LATEST" >/dev/null 2>&1; then
+    if timeout 300 npm install -g "@opencode/cli@$OC_LATEST" >/dev/null 2>&1; then
       # npm relinks ~/.npm-global/bin/opencode to the real CLI, clobbering the
       # usage wrapper — move the fresh binary to opencode-real and restore the
-      # wrapper (pristine copy baked at /opt/opencode-defaults/).
+      # wrapper (pristine copy baked at /opt/opencode-defaults/). Drop the
+      # `opencode2` alias npm also links so nothing bypasses the wrapper.
       if ! head -c 512 "$HOME/.npm-global/bin/opencode" 2>/dev/null | grep -q 'ddev-generated'; then
         mv -f "$HOME/.npm-global/bin/opencode" "$OC_REAL"
         cp /opt/opencode-defaults/opencode-usage-wrapper.sh "$HOME/.npm-global/bin/opencode"
         chmod +x "$HOME/.npm-global/bin/opencode"
       fi
+      rm -f "$HOME/.npm-global/bin/opencode2"
       echo "[opencode] OpenCode updated to $("$OC_REAL" --version 2>/dev/null || echo unknown)"
     else
       echo "[opencode] WARNING: update failed — keeping $OC_CURRENT"
@@ -130,6 +138,37 @@ for name in opencode.json opencode-notifier.json; do
   fi
 done
 
+# --- 1b. Credentials: API keys from the shared auth.json ---
+# OpenCode 2 keeps credentials in its SQLite database and only imports the
+# legacy auth.json while migrating an existing OpenCode 1 database — a fresh
+# database (what a new container gets) bootstraps the schema and never runs
+# that import. So inject every API key from the mounted auth.json
+# (~/.ddev/opencode/auth.json on the host) into the container-global config:
+# provider.<id>.options.apiKey — OpenCode 1 shape, normalized by OpenCode 2.
+# Keys already set by a higher config level are kept. OAuth entries cannot be
+# expressed in config: connect those once per project with /connect in the TUI
+# (stored in the persisted opencode-data volume). Nothing is written to the host.
+AUTH_JSON="$HOME/.local/share/opencode/auth.json"
+if [ -s "$AUTH_JSON" ] && jq -e 'type == "object"' "$AUTH_JSON" >/dev/null 2>&1 && [ -s "$OC_CONFIG/opencode.json" ]; then
+  _oc_tmp=$(mktemp)
+  if jq --slurpfile auth "$AUTH_JSON" '
+       reduce ($auth[0] | to_entries[]
+               | select((.value.type == "api" and (.value.key // "") != "")
+                        or (.value.type == "wellknown" and (.value.token // "") != ""))) as $e
+         (.; .provider[$e.key].options.apiKey //= ($e.value.key // $e.value.token))
+     ' "$OC_CONFIG/opencode.json" > "$_oc_tmp" 2>/dev/null; then
+    mv "$_oc_tmp" "$OC_CONFIG/opencode.json"
+    echo "[opencode] API keys from auth.json injected for: $(jq -r '[to_entries[] | select(.value.type == "api" or .value.type == "wellknown") | .key] | join(", ")' "$AUTH_JSON")"
+  else
+    rm "$_oc_tmp"
+    echo "[opencode] WARNING: could not inject API keys from auth.json"
+  fi
+  _oc_oauth=$(jq -r '[to_entries[] | select(.value.type == "oauth") | .key] | join(", ")' "$AUTH_JSON")
+  [ -n "$_oc_oauth" ] && echo "[opencode] OAuth entries in auth.json are not imported by OpenCode 2 ($_oc_oauth) — run /connect once in the TUI"
+fi
+# The merged config now carries secrets — keep it private to the container user.
+chmod 600 "$OC_CONFIG/opencode.json" 2>/dev/null || true
+
 # Orchestrator: OpenCode only auto-loads ~/.config/opencode/AGENTS.md as its
 # global rules file (it never reads CLAUDE.md from the config dir), so the
 # synced orchestrator must be installed under that name. Host override wins.
@@ -170,17 +209,14 @@ env | grep -E '^(DDEV_|IS_DDEV_PROJECT|HOME=|PATH=|LANG|TZ=|PLAYWRIGHT_)' \
 sudo chmod 644 /etc/ddev-env
 sudo /usr/sbin/sshd 2>/dev/null || true
 
-# --- 3. Install OpenCode plugins if not already installed ---
+# --- 3. OpenCode plugins ---
+# Nothing to install here: OpenCode 2 resolves the packages listed in the
+# `plugin` array of the merged opencode.json itself (npm install into
+# ~/.cache/opencode/npm/ on first server start, cached afterwards). It ignores
+# a node_modules/ next to the config, which is what OpenCode 1 used.
 # Notifier: desktop notifications. OTEL: token-usage telemetry for the human
 # forwarding feature (inert unless OPENCODE_ENABLE_TELEMETRY is set, which only
-# the CLI wrapper does — for human sessions). Both are also registered in the
-# `plugin` array of the merged opencode.json.
-for _oc_plugin in "@mohak34/opencode-notifier" "@devtheops/opencode-plugin-otel"; do
-  if [ ! -d "$HOME/.config/opencode/node_modules/$_oc_plugin" ]; then
-    mkdir -p "$HOME/.config/opencode"
-    (cd "$HOME/.config/opencode" && npm install --save "${_oc_plugin}@latest" 2>/dev/null) || true
-  fi
-done
+# the CLI wrapper does — for human sessions).
 
 # --- 3b. Trust the DDEV mkcert root CA ---
 # The Multica daemon's Go HTTPS/WSS client must verify *.ddev.site

@@ -30,7 +30,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && mkdir -p /var/run/sshd \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js 22 (required by OpenCode)
+# Install Node.js 22 (npm installs OpenCode and its plugins)
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
@@ -88,6 +88,7 @@ RUN curl -fsSL https://raw.githubusercontent.com/multica-ai/multica/main/scripts
 # Create required directories
 RUN mkdir -p ${USER_HOME}/.config/opencode \
     && mkdir -p ${USER_HOME}/.local/share/opencode \
+    && mkdir -p ${USER_HOME}/.cache/opencode \
     && mkdir -p ${USER_HOME}/.npm-global \
     && mkdir -p /var/www/html \
     && chown -R ${USER_UID}:${USER_GID} ${USER_HOME} \
@@ -101,8 +102,11 @@ ENV HOME=${USER_HOME}
 ENV NPM_CONFIG_PREFIX=${USER_HOME}/.npm-global
 ENV PATH="${USER_HOME}/.npm-global/bin:${PATH}"
 
-# Install OpenCode globally
-RUN npm install -g opencode-ai@latest
+# Install OpenCode 2 globally. The npm package is @opencode/cli — the old
+# opencode-ai package only ever ships OpenCode 1. The package also links an
+# `opencode2` alias; drop it so every invocation goes through the usage wrapper.
+RUN npm install -g @opencode/cli@latest \
+    && rm -f "${USER_HOME}/.npm-global/bin/opencode2"
 
 # Wrap the `opencode` binary so HUMAN sessions can forward token-usage telemetry
 # to Atlas (see opencode-usage-wrapper.sh). The real binary is kept at

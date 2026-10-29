@@ -41,6 +41,14 @@ health_checks() {
   run ddev add-on list --installed
   assert_success
   assert_output --partial "ddev-opencode"
+  # OpenCode 2 (npm @opencode/cli) must be the installed CLI
+  run ddev exec -s opencode opencode --version
+  assert_success
+  assert_output --regexp "opencode v2\.[0-9]+\.[0-9]+"
+  # The usage wrapper must still front the real binary after the self-update
+  run ddev exec -s opencode head -c 512 /home/opencode/.npm-global/bin/opencode
+  assert_success
+  assert_output --partial "ddev-generated"
 }
 
 teardown() {

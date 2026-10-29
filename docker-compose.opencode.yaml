@@ -53,7 +53,13 @@ services:
         read_only: true
       # Full agents volume (for CLAUDE.md and config copy in entrypoint)
       - agents-opencode-data:/agents-data:ro
-      # Shared credentials — only auth.json, not the full directory.
+      # OpenCode 2 state, persisted per project across restarts: the SQLite
+      # database (sessions, credentials added with /connect) and the plugin
+      # cache (OpenCode 2 downloads the configured plugins there itself).
+      - opencode-data:/home/opencode/.local/share/opencode
+      - opencode-cache:/home/opencode/.cache/opencode
+      # Shared credentials — only auth.json, not the full directory. OpenCode 2
+      # does not read it; the entrypoint injects its API keys into the config.
       - ${HOST_OPENCODE_DIR}/auth.json:/home/opencode/.local/share/opencode/auth.json
       # Host shared config dir (read-only side mount). The entrypoint builds
       # the container-global config by DEEP-MERGING this cascade (higher wins):
@@ -62,8 +68,6 @@ services:
       #   3. /agents-data/*.json            — synced defaults from the agents repo
       #   4. /opt/opencode-defaults/*.json  — basic defaults baked into the image
       - ${HOST_OPENCODE_DIR}/config:/host-opencode-config:ro
-      # Plugin node_modules (persistent across restarts)
-      - ${HOST_OPENCODE_DIR}/config/node_modules:/home/opencode/.config/opencode/node_modules
       # Multica daemon: env file from the shared ~/.ddev/multica/ directory.
       # Same file is mounted by every Multica-aware DDEV addon.
       # Empty MULTICA_TOKEN means disabled — entrypoint checks before acting.
@@ -86,6 +90,9 @@ services:
       # Self-update OpenCode on every container start (see entrypoint).
       # Set OPENCODE_AUTO_UPDATE=false in .ddev/.env.opencode to opt out.
       - OPENCODE_AUTO_UPDATE=${OPENCODE_AUTO_UPDATE:-true}
+      # The entrypoint is the only updater: OpenCode's built-in updater would
+      # reinstall via npm mid-session and clobber the usage wrapper.
+      - OPENCODE_DISABLE_AUTOUPDATE=1
       - TZ=${TZ:-UTC}
 
     stdin_open: true
@@ -108,5 +115,9 @@ networks:
 volumes:
   agents-opencode-data:
     name: ddev-${DDEV_SITENAME}-agents-opencode
+  opencode-data:
+    name: ddev-${DDEV_SITENAME}-opencode-data
+  opencode-cache:
+    name: ddev-${DDEV_SITENAME}-opencode-cache
   ddev-global-cache:
     external: true

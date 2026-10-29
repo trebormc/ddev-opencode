@@ -23,6 +23,9 @@ restore_tab_title() {
 
 case "$1" in
     ""|"tui")
+        # --standalone: private server for this TUI (OpenCode 2 otherwise
+        # shares one background service), so DDEV_TUI_TITLE and the usage
+        # wrapper's telemetry env apply to this session only.
         if [ "$1" = "tui" ]; then
             shift
         fi
@@ -31,7 +34,7 @@ case "$1" in
         trap restore_tab_title EXIT
         docker exec -it -u opencode \
             -e DDEV_TUI_TITLE="${CUSTOM_TITLE:-OpenCode}" \
-            "$OPENCODE_CONTAINER" opencode
+            "$OPENCODE_CONTAINER" opencode --standalone
         ;;
     "shell"|"bash")
         set_tab_title "shell"
