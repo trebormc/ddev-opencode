@@ -209,14 +209,46 @@ env | grep -E '^(DDEV_|IS_DDEV_PROJECT|HOME=|PATH=|LANG|TZ=|PLAYWRIGHT_)' \
 sudo chmod 644 /etc/ddev-env
 sudo /usr/sbin/sshd 2>/dev/null || true
 
-# --- 3. OpenCode plugins ---
-# Nothing to install here: OpenCode 2 resolves the packages listed in the
-# `plugin` array of the merged opencode.json itself (npm install into
-# ~/.cache/opencode/npm/ on first server start, cached afterwards). It ignores
-# a node_modules/ next to the config, which is what OpenCode 1 used.
-# Notifier: desktop notifications. OTEL: token-usage telemetry for the human
-# forwarding feature (inert unless OPENCODE_ENABLE_TELEMETRY is set, which only
-# the CLI wrapper does — for human sessions).
+# --- 3. OpenCode plugins: warm the plugin cache (background) ---
+# OpenCode 2 installs the packages listed in the `plugin` array of the merged
+# opencode.json itself (npm install into ~/.cache/opencode/npm/, persisted in
+# the opencode-cache volume) the first time a project location boots. It
+# ignores a node_modules/ next to the config, which is what OpenCode 1 used.
+# Until that first install finishes, the server answers EVERY request —
+# including the model list — with "Location plugins did not finish
+# activating", so a TUI opened right after the first start shows no models.
+# Trigger the install now instead: an ephemeral, password-protected server on
+# localhost, polled until the project's agents resolve, then stopped. Runs in
+# the background so container start is not delayed; with a warm cache it is
+# over in a few seconds. Plugins: notifier (desktop notifications) and OTEL
+# (token-usage telemetry, inert unless the CLI wrapper sets
+# OPENCODE_ENABLE_TELEMETRY for a human session).
+OC_REAL="$HOME/.npm-global/bin/opencode-real"
+if [ -x "$OC_REAL" ] && jq -e '((.plugin // []) + (.plugins // [])) | length > 0' "$OC_CONFIG/opencode.json" >/dev/null 2>&1; then
+  (
+    cd /var/www/html || exit 0
+    OPENCODE_PASSWORD="warmup-$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+    export OPENCODE_PASSWORD
+    _oc_port=$(( 40000 + RANDOM % 20000 ))
+    "$OC_REAL" serve --hostname 127.0.0.1 --port "$_oc_port" >/dev/null 2>&1 &
+    _oc_srv=$!
+    sleep 2
+    _oc_ready=0
+    for _ in $(seq 1 36); do   # up to ~3 minutes for a cold npm cache
+      if "$OC_REAL" debug agents --server "http://127.0.0.1:$_oc_port" >/dev/null 2>&1; then
+        _oc_ready=1
+        break
+      fi
+      sleep 5
+    done
+    kill "$_oc_srv" 2>/dev/null || true
+    if [ "$_oc_ready" = 1 ]; then
+      echo "[opencode] plugins installed and active (cache warm)"
+    else
+      echo "[opencode] WARNING: plugins did not activate within 3 minutes — a TUI opened now may show no models until they do; check ~/.cache/opencode/npm and network access to npm"
+    fi
+  ) &
+fi
 
 # --- 3b. Trust the DDEV mkcert root CA ---
 # The Multica daemon's Go HTTPS/WSS client must verify *.ddev.site
