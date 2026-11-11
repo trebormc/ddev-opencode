@@ -76,9 +76,12 @@ fi
 # OpenCode 2 ships as the @opencode/cli npm package (opencode-ai is OpenCode 1
 # only). This is the ONLY update path: OpenCode's own updater is disabled
 # (OPENCODE_DISABLE_AUTOUPDATE in docker-compose + "autoupdate": false in the
-# config) because an in-app npm reinstall would clobber the usage wrapper.
+# config) so the CLI is never reinstalled under a running session.
+# npm relinks ~/.npm-global/bin/opencode (the real CLI) on every install. The
+# usage wrapper lives elsewhere (/opt/ddev-ai/bin/opencode, first on PATH),
+# so no reinstall — this one or a manual `npm install -g` — can remove it.
+OC_REAL="$HOME/.npm-global/bin/opencode"
 if [ "${OPENCODE_AUTO_UPDATE:-true}" = "true" ]; then
-  OC_REAL="$HOME/.npm-global/bin/opencode-real"
   # `opencode --version` prints "opencode v2.2.1" — keep the bare version.
   OC_CURRENT=$("$OC_REAL" --version 2>/dev/null | sed -E 's/^opencode v//' || true)
   OC_CURRENT=${OC_CURRENT:-unknown}
@@ -86,15 +89,8 @@ if [ "${OPENCODE_AUTO_UPDATE:-true}" = "true" ]; then
   if [ -n "$OC_LATEST" ] && [ "$OC_CURRENT" != "$OC_LATEST" ]; then
     echo "[opencode] updating OpenCode $OC_CURRENT -> $OC_LATEST ..."
     if timeout 300 npm install -g "@opencode/cli@$OC_LATEST" >/dev/null 2>&1; then
-      # npm relinks ~/.npm-global/bin/opencode to the real CLI, clobbering the
-      # usage wrapper — move the fresh binary to opencode-real and restore the
-      # wrapper (pristine copy baked at /opt/opencode-defaults/). Drop the
-      # `opencode2` alias npm also links so nothing bypasses the wrapper.
-      if ! head -c 512 "$HOME/.npm-global/bin/opencode" 2>/dev/null | grep -q 'ddev-generated'; then
-        mv -f "$HOME/.npm-global/bin/opencode" "$OC_REAL"
-        cp /opt/opencode-defaults/opencode-usage-wrapper.sh "$HOME/.npm-global/bin/opencode"
-        chmod +x "$HOME/.npm-global/bin/opencode"
-      fi
+      # Drop the `opencode2` alias npm links again on every install, so no
+      # invocation bypasses the usage wrapper.
       rm -f "$HOME/.npm-global/bin/opencode2"
       echo "[opencode] OpenCode updated to $("$OC_REAL" --version 2>/dev/null || echo unknown)"
     else
@@ -103,6 +99,13 @@ if [ "${OPENCODE_AUTO_UPDATE:-true}" = "true" ]; then
   else
     echo "[opencode] OpenCode $OC_CURRENT is up to date (latest: ${OC_LATEST:-unreachable})"
   fi
+fi
+# Usage forwarding depends on `opencode` resolving to the wrapper. Say so
+# loudly if something ever shadows it (a PATH change, a stray binary), instead
+# of losing the statistics silently.
+OC_ON_PATH=$(command -v opencode 2>/dev/null || echo "not found")
+if [ "$OC_ON_PATH" != "/opt/ddev-ai/bin/opencode" ]; then
+  echo "[atlas] WARNING: \`opencode\` resolves to $OC_ON_PATH, not the usage wrapper /opt/ddev-ai/bin/opencode — human token usage will NOT be forwarded"
 fi
 
 # --- 1. Build the container-global OpenCode config ---
@@ -243,7 +246,6 @@ sudo /usr/sbin/sshd 2>/dev/null || true
 # over in a few seconds. Plugins: notifier (desktop notifications) and OTEL
 # (token-usage telemetry, inert unless the CLI wrapper sets
 # OPENCODE_ENABLE_TELEMETRY for a human session).
-OC_REAL="$HOME/.npm-global/bin/opencode-real"
 if [ -x "$OC_REAL" ] && jq -e '((.plugin // []) + (.plugins // [])) | length > 0' "$OC_CONFIG/opencode.json" >/dev/null 2>&1; then
   (
     cd /var/www/html || exit 0

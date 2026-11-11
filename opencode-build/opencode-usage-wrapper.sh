@@ -22,7 +22,9 @@
 # Any uncertainty falls back to "do not forward" to protect against double
 # counting.
 
-REAL="$HOME/.npm-global/bin/opencode-real"
+# Installed at /opt/ddev-ai/bin/opencode, first on PATH. REAL is the bin npm
+# links for @opencode/cli; reinstalls and updates only ever touch that path.
+REAL="$HOME/.npm-global/bin/opencode"
 CONFIG="$HOME/.config/atlas/human-usage.env"
 
 # ---- origin detection: is an ancestor the Multica daemon? --------------------

@@ -91,7 +91,7 @@ services:
       # Set OPENCODE_AUTO_UPDATE=false in .ddev/.env.opencode to opt out.
       - OPENCODE_AUTO_UPDATE=${OPENCODE_AUTO_UPDATE:-true}
       # The entrypoint is the only updater: OpenCode's built-in updater would
-      # reinstall via npm mid-session and clobber the usage wrapper.
+      # reinstall the CLI via npm under a running session.
       - OPENCODE_DISABLE_AUTOUPDATE=1
       - TZ=${TZ:-UTC}
 

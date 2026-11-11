@@ -100,7 +100,8 @@ WORKDIR ${USER_HOME}
 # Configure npm global packages in user home
 ENV HOME=${USER_HOME}
 ENV NPM_CONFIG_PREFIX=${USER_HOME}/.npm-global
-ENV PATH="${USER_HOME}/.npm-global/bin:${PATH}"
+# /opt/ddev-ai/bin holds the usage wrapper and MUST come first (see below).
+ENV PATH="/opt/ddev-ai/bin:${USER_HOME}/.npm-global/bin:${PATH}"
 
 # Install OpenCode 2 globally. The npm package is @opencode/cli — the old
 # opencode-ai package only ever ships OpenCode 1. The package also links an
@@ -108,17 +109,25 @@ ENV PATH="${USER_HOME}/.npm-global/bin:${PATH}"
 RUN npm install -g @opencode/cli@latest \
     && rm -f "${USER_HOME}/.npm-global/bin/opencode2"
 
-# Wrap the `opencode` binary so HUMAN sessions can forward token-usage telemetry
-# to Atlas (see opencode-usage-wrapper.sh). The real binary is kept at
-# `opencode-real`; the transparent wrapper takes its place on PATH. Daemon-run
-# invocations are detected inside the wrapper and left untouched. The OTEL
-# plugin itself is installed at start (entrypoint) alongside the notifier.
-RUN mv "${USER_HOME}/.npm-global/bin/opencode" "${USER_HOME}/.npm-global/bin/opencode-real"
-COPY --chown=${USER_UID}:${USER_GID} opencode-build/opencode-usage-wrapper.sh ${USER_HOME}/.npm-global/bin/opencode
-RUN chmod +x "${USER_HOME}/.npm-global/bin/opencode"
+# Wrap `opencode` so HUMAN sessions can forward token-usage telemetry to Atlas
+# (see opencode-usage-wrapper.sh). The transparent wrapper lives in its own
+# root-owned directory that comes FIRST on PATH and shadows the real CLI,
+# which stays untouched at ~/.npm-global/bin/opencode. Nothing can remove the
+# wrapper on update: `npm install -g` (entrypoint self-update or by hand) only
+# ever relinks ~/.npm-global/bin/. Never put the wrapper at
+# ~/.npm-global/bin/opencode: npm relinks that path and usage forwarding
+# silently stops. Daemon-run invocations are detected inside the wrapper and
+# left untouched. The OTEL plugin itself is installed at start (entrypoint)
+# alongside the notifier.
+COPY opencode-build/opencode-usage-wrapper.sh /opt/ddev-ai/bin/opencode
+RUN sudo chmod 755 /opt/ddev-ai/bin /opt/ddev-ai/bin/opencode
+
+# Keep the wrapper directory first on PATH in login shells too (~/.profile
+# sources ~/.bashrc and may prepend user bin directories afterwards).
+RUN echo 'export PATH="/opt/ddev-ai/bin:$PATH"' >> ~/.profile
 
 # Create useful aliases and helper functions
-RUN echo 'export PATH="${HOME}/.npm-global/bin:${HOME}/go/bin:$PATH"' >> ~/.bashrc \
+RUN echo 'export PATH="/opt/ddev-ai/bin:${HOME}/.npm-global/bin:${HOME}/go/bin:$PATH"' >> ~/.bashrc \
     && echo 'alias ll="ls -la"' >> ~/.bashrc \
     && echo '' >> ~/.bashrc \
     && echo '# Safe SSH command wrapper — preserves quoting across SSH' >> ~/.bashrc \
@@ -142,11 +151,6 @@ RUN echo 'export PATH="${HOME}/.npm-global/bin:${HOME}/go/bin:$PATH"' >> ~/.bash
 # even without the agents-sync add-on (see entrypoint config cascade)
 COPY opencode-build/opencode.default.json /opt/opencode-defaults/opencode.json
 COPY opencode-build/opencode-notifier.default.json /opt/opencode-defaults/opencode-notifier.json
-
-# Pristine copy of the usage wrapper — the entrypoint self-update reinstalls
-# OpenCode on start, which relinks the `opencode` bin and clobbers the wrapper;
-# the entrypoint restores it from this copy
-COPY opencode-build/opencode-usage-wrapper.sh /opt/opencode-defaults/opencode-usage-wrapper.sh
 
 # Copy entrypoint script (must be done before USER switch, or use sudo)
 COPY opencode-build/entrypoint.sh /usr/local/bin/entrypoint.sh

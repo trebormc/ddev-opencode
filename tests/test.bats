@@ -45,8 +45,15 @@ health_checks() {
   run ddev exec -s opencode opencode --version
   assert_success
   assert_output --regexp "opencode v2\.[0-9]+\.[0-9]+"
-  # The usage wrapper must still front the real binary after the self-update
-  run ddev exec -s opencode head -c 512 /home/opencode/.npm-global/bin/opencode
+  # The usage wrapper must front the real binary on PATH after the
+  # self-update, in plain exec and in login shells alike
+  run ddev exec -s opencode bash -c 'command -v opencode'
+  assert_success
+  assert_output "/opt/ddev-ai/bin/opencode"
+  run ddev exec -s opencode bash -lc 'command -v opencode'
+  assert_success
+  assert_output "/opt/ddev-ai/bin/opencode"
+  run ddev exec -s opencode head -c 512 /opt/ddev-ai/bin/opencode
   assert_success
   assert_output --partial "ddev-generated"
 }
