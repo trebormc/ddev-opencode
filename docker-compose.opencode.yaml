@@ -59,7 +59,8 @@ services:
       - opencode-data:/home/opencode/.local/share/opencode
       - opencode-cache:/home/opencode/.cache/opencode
       # Shared credentials — only auth.json, not the full directory. OpenCode 2
-      # does not read it; the entrypoint injects its API keys into the config.
+      # imports it only when it creates a fresh database; the entrypoint injects
+      # its API keys into the config on every start.
       - ${HOST_OPENCODE_DIR}/auth.json:/home/opencode/.local/share/opencode/auth.json
       # Host shared config dir (read-only side mount). The entrypoint builds
       # the container-global config by DEEP-MERGING this cascade (higher wins):
@@ -86,7 +87,6 @@ services:
       - DB_CONTAINER=ddev-${DDEV_SITENAME}-db
       - PLAYWRIGHT_MCP_URL=http://playwright-mcp:8931/mcp
       - BEADS_CONTAINER=ddev-${DDEV_SITENAME}-beads
-      - OPENCODE_DISABLE_TERMINAL_TITLE=1
       # Self-update OpenCode on every container start (see entrypoint).
       # Set OPENCODE_AUTO_UPDATE=false in .ddev/.env.opencode to opt out.
       - OPENCODE_AUTO_UPDATE=${OPENCODE_AUTO_UPDATE:-true}

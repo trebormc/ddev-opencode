@@ -117,7 +117,11 @@ fi
 # merge semantics as the levels below it.
 # Note: like OpenCode's own merge, objects merge recursively but arrays and
 # scalars are replaced wholesale (e.g. an `instructions` array in a higher
-# level fully replaces the lower one).
+# level fully replaces the lower one). The exception is `policies` (see the
+# jq below): the hard shell denies live there, because OpenCode 2 evaluates
+# `permission` rules in order with the last match winning and appends agent
+# rules after the global ones — a deny there is overridden by any later
+# `"*": "allow"` — while a `tool.use` policy applies after agent rules.
 AGENTS_DATA="/agents-data"
 OC_CONFIG="$HOME/.config/opencode"
 mkdir -p "$OC_CONFIG"
@@ -133,21 +137,37 @@ for name in opencode.json opencode-notifier.json; do
   done
   if [ "${#sources[@]}" -gt 0 ]; then
     # del: strip the DDEV update-tracking signature key from the baked default
-    jq -s 'reduce .[] as $x ({}; . * $x) | del(."#ddev-generated")' "${sources[@]}" > "$OC_CONFIG/$name"
+    # policies: the one array that is CONCATENATED across levels (lower level
+    # first, exact duplicates dropped keeping the last occurrence) instead of
+    # replaced. OpenCode evaluates policy statements in order and the last
+    # match wins, so a higher level can add statements — or lift a lower one
+    # with a later `allow` — without silently wiping the baked hard denies.
+    jq -s '
+      (map(.policies | if type == "array" then . else [] end) | add) as $p
+      | reduce .[] as $x ({}; . * $x)
+      | del(."#ddev-generated")
+      | if ($p | length) > 0
+        then .policies = ($p | reverse
+                          | reduce .[] as $s ([]; if any(.[]; . == $s) then . else . + [$s] end)
+                          | reverse)
+        else . end
+    ' "${sources[@]}" > "$OC_CONFIG/$name"
     echo "[opencode] $name <- merged: ${sources[*]}"
   fi
 done
 
 # --- 1b. Credentials: API keys from the shared auth.json ---
-# OpenCode 2 keeps credentials in its SQLite database and only imports the
-# legacy auth.json while migrating an existing OpenCode 1 database — a fresh
-# database (what a new container gets) bootstraps the schema and never runs
-# that import. So inject every API key from the mounted auth.json
-# (~/.ddev/opencode/auth.json on the host) into the container-global config:
-# provider.<id>.options.apiKey — OpenCode 1 shape, normalized by OpenCode 2.
-# Keys already set by a higher config level are kept. OAuth entries cannot be
-# expressed in config: connect those once per project with /connect in the TUI
-# (stored in the persisted opencode-data volume). Nothing is written to the host.
+# OpenCode 2 keeps credentials in its SQLite database. It imports the legacy
+# auth.json (API keys and OAuth entries) only once, when it creates a fresh
+# database (OpenCode >= 2.2.7) — the opencode-data volume persists that
+# database, so keys added or rotated on the host later would never arrive.
+# So inject every API key from the mounted auth.json
+# (~/.ddev/opencode/auth.json on the host) into the container-global config
+# on every start: provider.<id>.options.apiKey — OpenCode 1 shape, normalized
+# by OpenCode 2. Keys already set by a higher config level are kept. OAuth
+# entries cannot be expressed in config: a project whose database already
+# existed before the entry was added needs /connect once in the TUI (stored in
+# the persisted opencode-data volume). Nothing is written to the host.
 AUTH_JSON="$HOME/.local/share/opencode/auth.json"
 if [ -s "$AUTH_JSON" ] && jq -e 'type == "object"' "$AUTH_JSON" >/dev/null 2>&1 && [ -s "$OC_CONFIG/opencode.json" ]; then
   _oc_tmp=$(mktemp)
@@ -164,7 +184,7 @@ if [ -s "$AUTH_JSON" ] && jq -e 'type == "object"' "$AUTH_JSON" >/dev/null 2>&1 
     echo "[opencode] WARNING: could not inject API keys from auth.json"
   fi
   _oc_oauth=$(jq -r '[to_entries[] | select(.value.type == "oauth") | .key] | join(", ")' "$AUTH_JSON")
-  [ -n "$_oc_oauth" ] && echo "[opencode] OAuth entries in auth.json are not imported by OpenCode 2 ($_oc_oauth) — run /connect once in the TUI"
+  [ -n "$_oc_oauth" ] && echo "[opencode] OAuth entries in auth.json ($_oc_oauth) are imported only when OpenCode 2 creates this project's database — if the provider is not connected, run /connect once in the TUI"
 fi
 # The merged config now carries secrets — keep it private to the container user.
 chmod 600 "$OC_CONFIG/opencode.json" 2>/dev/null || true
@@ -218,7 +238,7 @@ sudo /usr/sbin/sshd 2>/dev/null || true
 # including the model list — with "Location plugins did not finish
 # activating", so a TUI opened right after the first start shows no models.
 # Trigger the install now instead: an ephemeral, password-protected server on
-# localhost, polled until the project's agents resolve, then stopped. Runs in
+# localhost, polled until the model catalog answers, then stopped. Runs in
 # the background so container start is not delayed; with a warm cache it is
 # over in a few seconds. Plugins: notifier (desktop notifications) and OTEL
 # (token-usage telemetry, inert unless the CLI wrapper sets
@@ -235,7 +255,11 @@ if [ -x "$OC_REAL" ] && jq -e '((.plugin // []) + (.plugins // [])) | length > 0
     sleep 2
     _oc_ready=0
     for _ in $(seq 1 36); do   # up to ~3 minutes for a cold npm cache
-      if "$OC_REAL" debug agents --server "http://127.0.0.1:$_oc_port" >/dev/null 2>&1; then
+      # `models` is the probe: the model endpoint answers 503 "Location plugins
+      # did not finish activating" until every plugin is active. `debug agents`
+      # is not one — since OpenCode 2.2.7 it returns the agents loaded so far
+      # and exits 0 while the npm install is still running.
+      if "$OC_REAL" models --server "http://127.0.0.1:$_oc_port" >/dev/null 2>&1; then
         _oc_ready=1
         break
       fi
