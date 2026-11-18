@@ -88,3 +88,27 @@ teardown() {
   assert_success
   health_checks
 }
+
+# bats test_tags=command
+@test "command and argument handling" {
+  set -eu -o pipefail
+  echo "# ddev add-on get ${DIR} with project ${PROJNAME} in $(pwd)" >&3
+  run ddev add-on get "${DIR}"
+  assert_success
+  run ddev restart -y
+  assert_success
+  # Options are passed to opencode, through the shortcut too.
+  run ddev opencode --version
+  assert_success
+  assert_output --regexp "opencode v2\.[0-9]+\.[0-9]+"
+  # Captured output must not carry the tab title escape sequences.
+  refute_output --partial $'\033]0;'
+  run ddev oc --version
+  assert_success
+  assert_output --regexp "opencode v2\.[0-9]+\.[0-9]+"
+  # Normal commands being passed in should work as expected.
+  run ddev opencode test -f /.dockerenv
+  assert_success
+  run ddev opencode test -d /.dockerenv
+  assert_failure
+}

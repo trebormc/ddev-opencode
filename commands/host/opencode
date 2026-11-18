@@ -2,13 +2,23 @@
 
 #ddev-generated
 ## Description: Access the OpenCode AI container (TUI or shell)
-## Usage: opencode [tui [title...]|shell|command...]
-## Example: "ddev opencode" for TUI, "ddev opencode shell" for bash, "ddev opencode <command>" to run a command
+## Usage: opencode [tui [title...]|shell|-opencode-option...|command...]
+## Example: "ddev opencode" for TUI, "ddev opencode shell" for bash, "ddev opencode --continue" to pass options to opencode, "ddev opencode <command>" to run a command
 ## ExecRaw: true
 
 OPENCODE_CONTAINER="ddev-${DDEV_SITENAME}-opencode"
 
+# Allocate a TTY only when attached to a terminal, so the command also works
+# in scripts, pipes and CI ("the input device is not a TTY" otherwise).
+if [ -t 0 ] && [ -t 1 ]; then
+    EXEC_FLAGS=(-it)
+else
+    EXEC_FLAGS=(-i)
+fi
+
 set_tab_title() {
+    # Never write escape sequences into piped or captured output.
+    [ -t 1 ] || return 0
     local custom_title="$1"
     if [ -n "$custom_title" ]; then
         printf '\033]0;%s - %s\007' "${DDEV_SITENAME}" "$custom_title"
@@ -18,6 +28,7 @@ set_tab_title() {
 }
 
 restore_tab_title() {
+    [ -t 1 ] || return 0
     printf '\033]0;%s\007' "${TERM_PROGRAM:-Terminal}"
 }
 
@@ -32,18 +43,27 @@ case "$1" in
         CUSTOM_TITLE="$*"
         set_tab_title "$CUSTOM_TITLE"
         trap restore_tab_title EXIT
-        docker exec -it -u opencode \
+        docker exec "${EXEC_FLAGS[@]}" -u opencode \
             -e DDEV_TUI_TITLE="${CUSTOM_TITLE:-OpenCode}" \
             "$OPENCODE_CONTAINER" opencode --standalone
         ;;
     "shell"|"bash")
         set_tab_title "shell"
         trap restore_tab_title EXIT
-        docker exec -it -u opencode "$OPENCODE_CONTAINER" bash
+        docker exec "${EXEC_FLAGS[@]}" -u opencode "$OPENCODE_CONTAINER" bash
+        ;;
+    -*)
+        # An option instead of a command: it is meant for opencode. Options
+        # go through untouched, --standalone included if the caller wants it.
+        set_tab_title ""
+        trap restore_tab_title EXIT
+        docker exec "${EXEC_FLAGS[@]}" -u opencode \
+            -e DDEV_TUI_TITLE="OpenCode" \
+            "$OPENCODE_CONTAINER" opencode "$@"
         ;;
     *)
         set_tab_title "$1"
         trap restore_tab_title EXIT
-        docker exec -it -u opencode "$OPENCODE_CONTAINER" "$@"
+        docker exec "${EXEC_FLAGS[@]}" -u opencode "$OPENCODE_CONTAINER" "$@"
         ;;
 esac

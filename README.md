@@ -139,7 +139,8 @@ OpenCode communicates with the web container via SSH (`ssh web`), giving it full
 | `ddev opencode tui` | Launch TUI (same as above) |
 | `ddev opencode tui Fix login bug` | Launch TUI with a custom tab title |
 | `ddev opencode shell` | Open a bash shell in the container |
-| `ddev opencode <command>` | Run any command in the container |
+| `ddev opencode --continue` | Arguments starting with `-` are passed to `opencode` |
+| `ddev opencode <command>` | Run any command in the container (`ddev opencode opencode <subcommand>` for the CLI's own subcommands) |
 
 ### Tab title for multi-project workflows
 
